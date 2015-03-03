@@ -1,1 +1,223 @@
-../../4.3/source/main.cpp
+//compile g++ -o filename file.cpp and run filename
+#include <iostream>
+#include <math.h>
+#include "vector"
+#include "alglib/src/ap.h"
+#include "alglib/src/alglibmisc.h"
+#include "alglib/src/alglibinternal.h"
+#include "alglib/src/linalg.h"
+#include "alglib/src/statistics.h"
+#include "alglib/src/dataanalysis.h"
+#include "alglib/src/specialfunctions.h"
+#include "alglib/src/solvers.h"
+#include "alglib/src/optimization.h"
+#include "alglib/src/diffequations.h"
+#include "alglib/src/fasttransforms.h"
+#include "alglib/src/integration.h"
+#include "alglib/src/interpolation.h"
+#include "alglib/src/ap.cpp"
+#include "alglib/src/linalg.cpp"
+#include "alglib/src/alglibmisc.cpp"
+#include "alglib/src/alglibinternal.cpp"
+#include "alglib/src/statistics.cpp"
+#include "alglib/src/dataanalysis.cpp"
+#include "alglib/src/specialfunctions.cpp"
+#include "alglib/src/solvers.cpp"
+#include "alglib/src/optimization.cpp"
+#include "alglib/src/diffequations.cpp"
+#include "alglib/src/fasttransforms.cpp"
+#include "alglib/src/integration.cpp"
+#include "alglib/src/interpolation.cpp"
+#include <string>
+
+using namespace std;
+using namespace alglib;
+using namespace alglib_impl;
+
+void outMatr (vector<vector<double> > A){
+    for (int i = 0; i < A.size(); ++i){
+        for (int j = 0; j < A[i].size(); ++j){
+            cout<<A[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+}
+void outVector (vector<double> B){
+    for (int i = 0; i < B.size(); ++i){
+        cout<< B[i]<<" ";
+    }
+    cout<<endl;
+}
+double F (double c) {
+    return c * c;
+}
+void readMatr (vector<vector<double> > &A){
+    A[0][0] = 2;
+    A[0][1] = 1;
+    A[1][0] = 1;
+    A[1][1] = 2;
+}
+void readVector (vector<double> &B){
+    B[0] = 4;
+    B[1] = 5;
+}
+double* arrToRealArr (vector<vector<double> >const &A){
+    double * local;
+    local = new double[A.size() * A.size()];
+    for (int i = 0; i < A.size(); ++i){
+        for (int j = 0; j < A[i].size();++j){
+            local[i * A.size() + j] = A[i][j];
+        }
+    }
+    return local;
+}
+void outReal1Array (alglib::real_1d_array wr) {
+    for (int i = 0; i < wr.length(); ++i )
+    cout<<wr[i]<<" ";
+    cout<<endl;
+}
+
+
+
+void firstApprSet(vector<double>& firstAppr) {
+    for (int i = 1; i < firstAppr.size(); ++i) {
+        firstAppr[i] = i;
+    }
+}
+double aMulX(vector<vector<double> > A, vector<double> X, int j){
+    double res = 0;
+    for (int i = 0; i < A.size(); ++i){
+        res += A[j][i] * X[i];
+    }
+    return res;
+}
+
+double findMaxRealArr (alglib::real_1d_array wr) {
+    double max = wr[0];
+    for (int i = 1; i < wr.length(); ++i){
+        if (wr[i] > max) max = wr[i];
+    }
+    return max;
+}
+
+void realArr2dToVectorMatr (alglib::real_2d_array matrix, vector<vector<double> > &A) {
+    for (int i = 0; i < A.size(); ++i) {
+        for (int j = 0; j < A.size(); ++j) {
+            A[i][j] = matrix[i][j];
+        }
+    }
+}
+
+/*
+*можно найти оптимальный w как 2 - O(h) но это же слишком просто, по этому пишем эту фиготень
+*/
+double wOptSet ( vector<vector<double> > A) {
+    vector<vector<double> > D(A.size(), vector<double>(A.size(), 0));
+    vector<vector<double> > L(A.size(), vector<double>(A.size(), 0));
+    vector<vector<double> > R(A.size(), vector<double>(A.size(), 0));
+    alglib::ae_int_t info;
+    alglib::matinvreport rep;
+    alglib::real_2d_array matrixD;
+    alglib::real_2d_array matrixR;
+    alglib::real_2d_array matrixL;
+    matrixD.setcontent(A.size(), A.size(), arrToRealArr(D));
+    matrixL.setcontent(A.size(), A.size(), arrToRealArr(L));
+    matrixR.setcontent(A.size(), A.size(), arrToRealArr(R));
+    for (int i = 0; i < A.size(); ++i ){
+        D[i][i] = A[i][i];
+    }
+    for (int i = 0; i < A.size(); ++i )
+        for (int j = i + 1; j < A.size(); ++j){
+            R[i][j] = A[i][j];
+        }
+    for (int i = 0; i < A.size(); ++i )
+        for (int j = 0; j < i; ++j){
+            L[i][j] = A[i][j];
+        }
+    /*
+    *TODO: просто все диагональные элементы сделать поделеными от единицы
+    */
+    cout<<"Inversing"<<endl;
+    cout<<"info "<<int(info)<<endl;
+    for (int i = 0; i < A.size(); ++i ){
+        for (int j = 0; j < A.size(); ++j){
+            cout<<matrixD[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+    realArr2dToVectorMatr(matrixD, D);
+    cout<<"The D inverse Is:"<<endl;
+    outMatr(D);
+    return 0;
+}
+
+int main(){
+
+  /*
+  *TODO: add elliptic diffequations
+  *TODO: add CUDA improvements
+  *эта часть задачи решает по матрице и правой части итерационный процесс верхних релаксаций
+  */
+  /*
+  * N means matr size
+  * A means main Matr
+  * B means right vector
+  */
+  int N = 2;
+  /*
+  * Getting inputs A and B
+  */
+  vector<vector<double> > A(N, vector<double>(N, 0));
+  readMatr(A);
+  vector<double> B(N, 0);
+  vector<double> firstAppr(N, 0);
+  firstApprSet(firstAppr);
+  readVector(B);
+  double eps = 0.0001;
+  double spectr;
+  double wOpt;
+  alglib::real_2d_array matrix;
+  matrix.setcontent(N, N, arrToRealArr(A));
+
+  /*
+  *creating another parts
+  *wr - целые части собственных чисел
+  *wi - мнимые части собственных чисел
+  *vl - собственный левый вектор
+  *vr - собственный правый вектор
+  */
+  alglib::real_1d_array wr;
+  alglib::real_1d_array wi;
+  alglib::real_2d_array vl;
+  alglib::real_2d_array vr;
+  /*
+  * расчет собственных чисел
+  */
+  alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
+
+  /*
+  *допустим что спектральынй радиус матрицы это максимальное собственное число (которые все норм должны быть) без модуля, так как все должны быть положительны
+  */
+spectr = findMaxRealArr(wr);
+wOpt = wOptSet(A);
+
+
+  /*
+  * outing
+  */
+  cout<<"The Matr Is:"<<endl;
+  outMatr(A);
+  cout<<"The Vector Is:"<<endl;
+  outVector(B);
+  cout<<"The first approximation Is:"<<endl;
+  outVector(firstAppr);
+  cout<<"The epsilon Is:"<<endl;
+  cout<<eps<<endl;
+  cout<<"The Vector of ownValues:"<<endl;
+  outReal1Array(wr);
+  cout<<"The Spectr Is:"<<endl;
+  cout<<spectr<<endl;
+  cout<<"The wOpt Is:"<<endl;
+  cout<<wOpt<<endl;
+  return 0;
+}
