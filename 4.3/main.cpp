@@ -77,6 +77,14 @@ void outReal1Array (alglib::real_1d_array wr) {
     cout<<endl;
 }
 
+void outReal2Array (alglib::real_2d_array wr, int size) {
+    for (int i = 0; i < size; ++i ){
+        for (int j = 0; j < size; ++j )
+            cout<<wr[i][j]<<" ";
+        cout<<endl;
+    }
+}
+
 
 
 void firstApprSet(vector<double>& firstAppr) {
@@ -109,47 +117,61 @@ void realArr2dToVectorMatr (alglib::real_2d_array matrix, vector<vector<double> 
 }
 
 /*
+*works only for good square matricies
+*/
+void mulMatricies (vector<vector<double> > A, vector<vector<double> > B, vector<vector<double> > &temp) {
+    for (int i = 0; i < A.size(); ++i)
+        for (int j = 0; j < A.size(); ++j)
+            for (int k = 0; k < A.size(); ++k)
+                temp[i][j] += A[k][j] * B[i][k];
+}
+
+/*
 *можно найти оптимальный w как 2 - O(h) но это же слишком просто, по этому пишем эту фиготень
 */
-double wOptSet ( vector<vector<double> > A) {
+double wOptSet ( vector<vector<double> > A, double spectr, double oh) {
     vector<vector<double> > D(A.size(), vector<double>(A.size(), 0));
-    vector<vector<double> > L(A.size(), vector<double>(A.size(), 0));
-    vector<vector<double> > R(A.size(), vector<double>(A.size(), 0));
+    vector<vector<double> > LR(A.size(), vector<double>(A.size(), 0));
+    vector<vector<double> > det(A.size(), vector<double>(A.size(), 0));
+    double rDet;
+    double wOpt;
     alglib::ae_int_t info;
     alglib::matinvreport rep;
     alglib::real_2d_array matrixD;
-    alglib::real_2d_array matrixR;
-    alglib::real_2d_array matrixL;
-    matrixD.setcontent(A.size(), A.size(), arrToRealArr(D));
-    matrixL.setcontent(A.size(), A.size(), arrToRealArr(L));
-    matrixR.setcontent(A.size(), A.size(), arrToRealArr(R));
+    alglib::real_2d_array matrixLR;
+    alglib::real_2d_array matrixDet;
     for (int i = 0; i < A.size(); ++i ){
         D[i][i] = A[i][i];
     }
     for (int i = 0; i < A.size(); ++i )
-        for (int j = i + 1; j < A.size(); ++j){
-            R[i][j] = A[i][j];
-        }
-    for (int i = 0; i < A.size(); ++i )
-        for (int j = 0; j < i; ++j){
-            L[i][j] = A[i][j];
-        }
-    /*
-    *TODO: просто все диагональные элементы сделать поделеными от единицы
-    */
-    cout<<"Inversing"<<endl;
-    cout<<"info "<<int(info)<<endl;
-    for (int i = 0; i < A.size(); ++i ){
         for (int j = 0; j < A.size(); ++j){
-            cout<<matrixD[i][j]<<" ";
+            if (i != j) LR[i][j] = A[i][j];
         }
-        cout<<endl;
-    }
+    matrixD.setcontent(A.size(), A.size(), arrToRealArr(D));
+    matrixLR.setcontent(A.size(), A.size(), arrToRealArr(LR));
+    alglib::rmatrixinverse(matrixD, A.size(), info, rep);
     realArr2dToVectorMatr(matrixD, D);
-    cout<<"The D inverse Is:"<<endl;
-    outMatr(D);
-    return 0;
+    mulMatricies(D, LR, det);
+    matrixDet.setcontent(A.size(), A.size(), arrToRealArr(det));
+    // outMatr(det);
+    // outReal2Array(matrixDet, det.size());
+    rDet = alglib::rmatrixdet(matrixDet);
+    wOpt = 2 / (1 + sqrt(1 - spectr * spectr * rDet));
+    if (wOpt < 1 && wOpt > 0) {
+        wOpt +=1;
+    } else {
+        wOpt = 2 - oh;
+    }
+    // cout<<"The determ is "<<rDet<<endl;
+    // cout<<"The wopt is "<<wOpt<<endl;
+    //checking inversed
+    // cout<<"The D inverse Is:"<<endl;
+    // to find determenant use RMatrixDet
+
+    return wOpt;
 }
+
+
 
 int main(){
 
@@ -176,6 +198,7 @@ int main(){
   double eps = 0.0001;
   double spectr;
   double wOpt;
+  double maxDiff = 1;
   alglib::real_2d_array matrix;
   matrix.setcontent(N, N, arrToRealArr(A));
 
@@ -198,9 +221,18 @@ int main(){
   /*
   *допустим что спектральынй радиус матрицы это максимальное собственное число (которые все норм должны быть) без модуля, так как все должны быть положительны
   */
-spectr = findMaxRealArr(wr);
-wOpt = wOptSet(A);
+  spectr = findMaxRealArr(wr);
+  wOpt = wOptSet(A, spectr, 1 / N);
 
+  /*
+  *main loop here
+  *если я правильно понял то новые вычисления нужно тут же использовать, исхожу из этого мнения
+  */
+  do {
+      for (int i = 0; i < A.size(); i++) {
+        //   firstAppr[i] = firstAppr[i] + (B[i] - aMulX(A, firstAppr, i)) * w / ()
+      }
+  } while (maxDiff > eps)
 
   /*
   * outing
