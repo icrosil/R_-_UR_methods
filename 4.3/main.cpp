@@ -128,6 +128,7 @@ void mulMatricies (vector<vector<double> > A, vector<vector<double> > B, vector<
 
 /*
 *можно найти оптимальный w как 2 - O(h) но это же слишком просто, по этому пишем эту фиготень
+*совсем не факт что это штука с детерминантом оптимальная но другого у меня нет.
 */
 double wOptSet ( vector<vector<double> > A, double spectr, double oh) {
     vector<vector<double> > D(A.size(), vector<double>(A.size(), 0));
@@ -171,7 +172,28 @@ double wOptSet ( vector<vector<double> > A, double spectr, double oh) {
     return wOpt;
 }
 
+double DwL (vector<vector<double> > A, int k, double w) {
+    double sum = 0;
+    for (int i = 0; i < k; ++i) {
+        sum += A[k][i] * w;
+    }
+    sum += A[k][k];
+    return sum;
+}
 
+double findMaxInVector ( vector<double> a) {
+    double max = a[0];
+    for (size_t i = 1; i < a.size(); i++) {
+        if (a[i] > max) max = a[i];
+    }
+    return max;
+}
+
+void copyVectors (vector<double> in, vector<double> &out) {
+    for (size_t i = 0; i < in.size(); i++) {
+        out[i] = in[i];
+    }
+}
 
 int main(){
 
@@ -193,6 +215,7 @@ int main(){
   readMatr(A);
   vector<double> B(N, 0);
   vector<double> firstAppr(N, 0);
+  vector<double> changeAppr(N, 0);
   firstApprSet(firstAppr);
   readVector(B);
   double eps = 0.0001;
@@ -222,18 +245,31 @@ int main(){
   *допустим что спектральынй радиус матрицы это максимальное собственное число (которые все норм должны быть) без модуля, так как все должны быть положительны
   */
   spectr = findMaxRealArr(wr);
-  wOpt = wOptSet(A, spectr, 1 / N);
+  wOpt = wOptSet(A, spectr, 1. / N);
 
   /*
   *main loop here
   *если я правильно понял то новые вычисления нужно тут же использовать, исхожу из этого мнения
   */
+  int k = 0;
   do {
-      for (int i = 0; i < A.size(); i++) {
-        //   firstAppr[i] = firstAppr[i] + (B[i] - aMulX(A, firstAppr, i)) * w / ()
-      }
-  } while (maxDiff > eps)
-
+        cout<<"The "<<k<<" iter"<<endl;
+        copyVectors(firstAppr, changeAppr);
+        // outVector(changeAppr);
+        for (int i = 0; i < A.size(); i++) {
+            firstAppr[i] = firstAppr[i] + (B[i] - aMulX(A, firstAppr, i)) * wOpt / (DwL(A, i, wOpt));
+        }
+        for (size_t i = 0; i < firstAppr.size(); i++) {
+            changeAppr[i] = fabs(firstAppr[i] - changeAppr[i]);
+        }
+        outVector(firstAppr);
+        // outVector(changeAppr);
+        // cout<<findMaxInVector(changeAppr)<<endl;
+        maxDiff = findMaxInVector(changeAppr);
+        // system("pause");
+    ++k;
+} while (maxDiff > eps);
+firstApprSet(changeAppr);
   /*
   * outing
   */
@@ -242,7 +278,7 @@ int main(){
   cout<<"The Vector Is:"<<endl;
   outVector(B);
   cout<<"The first approximation Is:"<<endl;
-  outVector(firstAppr);
+  outVector(changeAppr);
   cout<<"The epsilon Is:"<<endl;
   cout<<eps<<endl;
   cout<<"The Vector of ownValues:"<<endl;
@@ -251,5 +287,7 @@ int main(){
   cout<<spectr<<endl;
   cout<<"The wOpt Is:"<<endl;
   cout<<wOpt<<endl;
+  cout<<"The result Is:"<<endl;
+  outVector(firstAppr);
   return 0;
 }
