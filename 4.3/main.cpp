@@ -101,9 +101,9 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j){
 }
 
 double findMaxRealArr (alglib::real_1d_array wr) {
-    double max = wr[0];
+    double max = fabs(wr[0]);
     for (int i = 1; i < wr.length(); ++i){
-        if (wr[i] > max) max = wr[i];
+        if (fabs(wr[i]) > max) max = wr[i];
     }
     return max;
 }
@@ -157,9 +157,11 @@ double wOptSet ( vector<vector<double> > A, double spectr, double oh) {
     // outMatr(det);
     // outReal2Array(matrixDet, det.size());
     rDet = alglib::rmatrixdet(matrixDet);
-    wOpt = 2 / (1 + sqrt(1 - spectr * spectr * rDet));
+    wOpt = 2 / (1 + sqrt(1 - spectr * spectr ));//* rDet));
     if (wOpt < 1 && wOpt > 0) {
         wOpt +=1;
+    } else if (wOpt < 2 && wOpt > 1){
+        wOpt = wOpt;
     } else {
         wOpt = 2 - oh;
     }
