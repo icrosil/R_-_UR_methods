@@ -29,6 +29,7 @@
 #include "../lib/alglib/src/integration.cpp"
 #include "../lib/alglib/src/interpolation.cpp"
 #include <string>
+#include <ctime>
 
 using namespace std;
 using namespace alglib;
@@ -49,17 +50,25 @@ void outVector (vector<double> B){
     cout<<endl;
 }
 double F (double c) {
-    return c * c;
+    return c;
 }
 void readMatr (vector<vector<double> > &A){
-    A[0][0] = 2;
-    A[0][1] = 1;
-    A[1][0] = 1;
-    A[1][1] = 2;
+    A[0][0] = 1;
+    A[A.size() - 1][A.size() - 1] = 1;
+    for (int i = 1; i < A.size() - 1; i++) {
+        A[i][i - 1] = -1. / ((A.size() - 1) * (A.size() - 1));
+        A[i][i] = 2. / ((A.size() - 1) * (A.size() - 1));
+        A[i][i + 1] = -1. / ((A.size() - 1) * (A.size() - 1));
+    }
 }
 void readVector (vector<double> &B){
-    B[0] = 4;
-    B[1] = 5;
+    B[0] = 0;
+    cout<<"The B:"<<endl;
+    for (int i = 1; i < B.size() - 1; i++) {
+        B[i] = F(i / (B.size() - 1.));
+        cout<<B[i]<<endl;
+    }
+    B[B.size() - 1] = 0;
 }
 double* arrToRealArr (vector<vector<double> >const &A){
     double * local;
@@ -114,7 +123,7 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j){
     return res;
 }
 int main(){
-
+    unsigned int start_time =  clock();
   /*
   *TODO: add elliptic diffequations
   *TODO: add CUDA improvements
@@ -125,7 +134,7 @@ int main(){
   * A means main Matr
   * B means right vector
   */
-  int N = 2;
+  int N = 10;
   /*
   * Getting inputs A and B
   */
@@ -139,7 +148,7 @@ int main(){
   readVector(B);
   alglib::real_2d_array matrix;
   matrix.setcontent(N, N, arrToRealArr(A));
-  double eps = 0.0001;
+  double eps = 0.000001;
   /*
   *creating another parts
   *wr - целые части собственных чисел
@@ -181,6 +190,10 @@ int main(){
       outVector(firstAppr);
       cout<<endl;
   }
+
+  for (int i = 0; i < firstAppr.size(); i++) {
+      firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1))*((firstAppr.size() - 1) * (firstAppr.size() - 1));
+  }
   /*
   * outing
   */
@@ -188,7 +201,7 @@ int main(){
   outMatr(A);
   cout<<"The Vector Is:"<<endl;
   outVector(B);
-  cout<<"The first approximation Is:"<<endl;
+  cout<<"The last approximation Is:"<<endl;
   outVector(firstAppr);
   cout<<"The Vector of ownValues:"<<endl;
   outReal1Array(wr);
@@ -204,5 +217,9 @@ int main(){
   cout<<ro0<<endl;
   cout<<"The maxIter is:"<<endl;
   cout<<maxIter<<endl;
+  unsigned int end_time = clock(); // конечное время
+  unsigned int search_time = end_time - start_time; // искомое время
+  cout<<"The time is:"<<endl;
+  cout<<search_time<<" ms"<<endl;
   return 0;
 }
