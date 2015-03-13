@@ -191,6 +191,9 @@ int main(){
       cout<<endl;
   }
 
+  /*
+  * TODO: либо система как то не очень правильная получается либо еще что, но приходится потом делить на маленькое число и получается достаточно большая ошибка приближения
+  */
   for (int i = 0; i < firstAppr.size(); i++) {
       firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1))*((firstAppr.size() - 1) * (firstAppr.size() - 1));
   }
