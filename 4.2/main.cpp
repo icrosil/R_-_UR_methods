@@ -30,6 +30,7 @@
 #include "../lib/alglib/src/interpolation.cpp"
 #include <string>
 #include <ctime>
+#include <mkl.h>
 
 using namespace std;
 using namespace alglib;
@@ -124,6 +125,7 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j){
 }
 int main(){
     unsigned int start_time =  clock();
+    double t0 = dsecnd();
   /*
   *TODO: add elliptic diffequations
   *TODO: add CUDA improvements
@@ -221,9 +223,9 @@ int main(){
   cout<<ro0<<endl;
   cout<<"The maxIter is:"<<endl;
   cout<<maxIter<<endl;
-  unsigned int end_time = clock(); // конечное время
-  unsigned int search_time = end_time - start_time; // искомое время
+  // unsigned int end_time = clock(); // конечное время
+  // unsigned int search_time = end_time - start_time; // искомое время
   cout<<"The time is:"<<endl;
-  cout<<search_time<<" ms"<<endl;
+  cout<< dsecnd() - t0 <<" ms"<<endl;
   return 0;
 }
