@@ -56,9 +56,9 @@ void readMatr (vector<vector<double> > &A){
     A[0][0] = 1;
     A[A.size() - 1][A.size() - 1] = 1;
     for (int i = 1; i < A.size() - 1; i++) {
-        A[i][i - 1] = -1. / ((A.size() - 1) * (A.size() - 1));
-        A[i][i] = 2. / ((A.size() - 1) * (A.size() - 1));
-        A[i][i + 1] = -1. / ((A.size() - 1) * (A.size() - 1));
+        A[i][i - 1] = -1. ;/// ((A.size() - 1) * (A.size() - 1));
+        A[i][i] = 2.;// / ((A.size() - 1) * (A.size() - 1));
+        A[i][i + 1] = -1.;// / ((A.size() - 1) * (A.size() - 1));
     }
 }
 void readVector (vector<double> &B){
@@ -148,7 +148,7 @@ int main(){
   readVector(B);
   alglib::real_2d_array matrix;
   matrix.setcontent(N, N, arrToRealArr(A));
-  double eps = 0.000001;
+  double eps = 0.00001;
   /*
   *creating another parts
   *wr - целые части собственных чисел
@@ -195,7 +195,8 @@ int main(){
   * TODO: либо система как то не очень правильная получается либо еще что, но приходится потом делить на маленькое число и получается достаточно большая ошибка приближения
   */
   for (int i = 0; i < firstAppr.size(); i++) {
-      firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1))*((firstAppr.size() - 1) * (firstAppr.size() - 1));
+    //   firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1))*((firstAppr.size() - 1) * (firstAppr.size() - 1));
+      firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
   }
   /*
   * outing
