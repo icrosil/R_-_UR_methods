@@ -136,7 +136,7 @@ int main(){
   * A means main Matr
   * B means right vector
   */
-  int N = 10;
+  int N = 100;
   /*
   * Getting inputs A and B
   */

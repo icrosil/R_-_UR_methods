@@ -40,8 +40,10 @@ using namespace alglib_impl;
  * CUDA functions
  */
 
-__global__ void hello (void) {
-
+__global__ void mykernel (double *a, double *b, double *c, double *d) {
+//B, temp, Tau[i - 1], firstAppr
+//tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
+    d[blockIdx.x] = (a[blockIdx.x] - b[blockIdx.x]) * (*c) + d[blockIdx.x];
 }
 
 /**
@@ -134,6 +136,18 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j){
     }
     return res;
 }
+double* aMulXVector(vector<vector<double> > A, vector<double> X){
+    double *res = new double [X.size()];
+    for (int j = 0; j < X.size(); j++) {
+        res[j] = 0;
+    }
+    for (int j = 0; j < A.size(); ++j){
+        for (int i = 0; i < A.size(); ++i){
+            res[j] += A[j][i] * X[i];
+        }
+    }
+    return res;
+}
 
 /**
  * main entrance
@@ -142,7 +156,6 @@ int main(void){
     unsigned int start_time =  clock();
     double t0 = dsecnd();
   /*
-  *TODO: add elliptic diffequations
   *TODO: add CUDA improvements
   *эта часть задачи решает по матрице и правой части итерационный процесс.
   */
@@ -151,7 +164,7 @@ int main(void){
   * A means main Matr
   * B means right vector
   */
-  int N = 10;
+  int N = 100;
   /*
   * Getting inputs A and B
   */
@@ -197,13 +210,40 @@ int main(void){
   /*
   *main loop here
   */
+  double *temp = new double [N];
+  double *b = new double [N];
+  double *fa = new double [N];
+  double *d_a, *d_b, *d_c, *d_d;
+  int size = sizeof(double);
 
+  cudaMalloc((void **)&d_a, size * N);
+  cudaMalloc((void **)&d_b, size * N);
+  cudaMalloc((void **)&d_c, size);
+  cudaMalloc((void **)&d_d, size * N);
+
+  for (int j = 0; j < N; j++) {
+      temp[j] = 0;
+      b[j] = B[j];
+      fa[j] = firstAppr[j];
+  }
+
+  cudaMemcpy(d_a, b, size * N, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_b, temp, size * N, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_d, fa, size * N, cudaMemcpyHostToDevice);
   for (int i = 1; i < maxIter; ++i) {
       cout<<"The "<<i<<" iter"<<endl;
-      for (int j = 0; j < N; ++j) {
-          tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
+      temp = aMulXVector(A, firstAppr);
+      cudaMemcpy(d_c, &Tau[i - 1], size, cudaMemcpyHostToDevice);
+      mykernel<<<N,1>>>(d_a, d_b, d_c, d_d);
+      cudaMemcpy(fa, d_d, size * N, cudaMemcpyHostToDevice);
+      for (int j = 0; j < N; j++) {
+          firstAppr[j] = fa[j];
       }
-      firstAppr = tempAppr;
+    //   tempAppr = mykernel<<<1,1>>>(B, temp, Tau[i - 1], firstAppr);
+    //   for (int j = 0; j < N; ++j) {
+    //       tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
+    //   }
+    //   firstAppr = tempAppr;
       outVector(firstAppr);
       cout<<endl;
   }
@@ -212,6 +252,10 @@ int main(void){
   for (int i = 0; i < firstAppr.size(); i++) {
       firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
   }
+  cudaFree(d_a);
+  cudaFree(d_b);
+  cudaFree(d_c);
+  cudaFree(d_d);
   /*
   * outing
   */
