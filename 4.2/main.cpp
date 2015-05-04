@@ -36,19 +36,22 @@ using namespace std;
 using namespace alglib;
 using namespace alglib_impl;
 
-void outMatr (vector<vector<double> > A){
-    for (int i = 0; i < A.size(); ++i){
-        for (int j = 0; j < A[i].size(); ++j){
-            cout<<A[i][j]<<" ";
-        }
-        cout<<endl;
-    }
-}
 void outVector (vector<double> B){
-    for (int i = 0; i < B.size(); ++i){
-        cout<< B[i]<<" ";
+    int additions = B.size() / 4;
+    cout<< B[0] << " ";
+    for (int i = 1; i < 4; i++){
+        cout<< B[i * additions] << " ";
     }
+    cout<< B[B.size() - 1] << " ";
     cout<<endl;
+}
+void outMatr (vector<vector<double> > A){
+    int additions = A.size() / 4;
+    outVector(A[0]);
+    for (int i = additions; i < A.size() - 1; i += additions){
+        outVector(A[i]);
+    }
+    outVector(A[A.size() - 1]);
 }
 double F (double c) {
     return c;
@@ -57,17 +60,15 @@ void readMatr (vector<vector<double> > &A){
     A[0][0] = 1;
     A[A.size() - 1][A.size() - 1] = 1;
     for (int i = 1; i < A.size() - 1; i++) {
-        A[i][i - 1] = -1. ;/// ((A.size() - 1) * (A.size() - 1));
-        A[i][i] = 2.;// / ((A.size() - 1) * (A.size() - 1));
-        A[i][i + 1] = -1.;// / ((A.size() - 1) * (A.size() - 1));
+        A[i][i - 1] = -1. ;
+        A[i][i] = 2.;
+        A[i][i + 1] = -1.;
     }
 }
 void readVector (vector<double> &B){
     B[0] = 0;
-    cout<<"The B:"<<endl;
     for (int i = 1; i < B.size() - 1; i++) {
-        B[i] = F(i / (B.size() - 1.));
-        cout<<B[i]<<endl;
+        B[i] = F(i / (double) (B.size()));
     }
     B[B.size() - 1] = 0;
 }
@@ -87,16 +88,16 @@ void outReal1Array (alglib::real_1d_array wr) {
     cout<<endl;
 }
 double findMaxRealArr (alglib::real_1d_array const wr) {
-    double max = wr[0];
+    double max = fabs(wr[0]);
     for (int i = 1; i < wr.length(); ++i) {
-        if (wr[i] > max) max = wr[i];
+        if (fabs(wr[i]) > max) max = fabs(wr[i]);
     }
     return max;
 }
 double findMinRealArr (alglib::real_1d_array const wr) {
-    double min = wr[0];
+    double min = fabs(wr[0]);
     for (int i = 1; i < wr.length(); ++i) {
-        if (wr[i] < min) min = wr[i];
+        if (fabs(wr[i]) < min) min = fabs(wr[i]);
     }
     return min;
 }
@@ -105,15 +106,12 @@ double nextTau (vector<double> Tau, double ro0, int n) {
     double tk = cos ((2 * Tau.size() - 1) * M_PI / (2 * n));
     return Tau[0] / (1 + ro0 * tk);
 }
-/*
-* TODO: make clear is it correct
-*/
-int findMaxIter (double eps, double ksi) {
-    return floor(log (2 / eps) / (2 * sqrt(ksi)));
+int findMaxIter (double eps, double ro1) {
+    return ceil(log (2. / eps) / log (1. / ro1));
 }
 void firstApprSet(vector<double>& firstAppr) {
     for (int i = 1; i < firstAppr.size(); ++i) {
-        firstAppr[i] = i;
+        firstAppr[i] = 1;
     }
 }
 double aMulX(vector<vector<double> > A, vector<double> X, int j){
@@ -126,17 +124,9 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j){
 int main(){
     unsigned int start_time =  clock();
     double t0 = dsecnd();
-  /*
-  *TODO: add elliptic diffequations
-  *TODO: add CUDA improvements
-  *эта часть задачи решает по матрице и правой части итерационный процесс.
-  */
-  /*
-  * N means matr size
-  * A means main Matr
-  * B means right vector
-  */
-  int N = 100;
+
+  int N = 20;
+
   /*
   * Getting inputs A and B
   */
@@ -166,16 +156,13 @@ int main(){
   * расчет собственных чисел
   */
   alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
-  /*
-  *TODO: make clear here no imaginarium parts
-  *TODO: make clear here good A matr and Alphas > 0
-  */
   double AlphaMax = findMaxRealArr(wr);
   double AlphaMin = findMinRealArr(wr);
   Tau[0] = 2 / (AlphaMax + AlphaMin);
   double ksi = AlphaMin / AlphaMax;
   double ro0 = (1 - ksi) / (1 + ksi);
-  int maxIter = findMaxIter(eps, ksi);
+  double ro1 = (1 - sqrt(ksi)) / (1 + sqrt(ksi));
+  int maxIter = findMaxIter(eps, ro1);
 
   for (int i = 1; i < maxIter + 1; ++i) Tau.push_back(nextTau(Tau, ro0, maxIter));
 
@@ -193,24 +180,25 @@ int main(){
       cout<<endl;
   }
 
-  /*
-  * TODO: либо система как то не очень правильная получается либо еще что, но приходится потом делить на маленькое число и получается достаточно большая ошибка приближения
-  */
+
   for (int i = 0; i < firstAppr.size(); i++) {
-    //   firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1))*((firstAppr.size() - 1) * (firstAppr.size() - 1));
       firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
   }
   /*
   * outing
   */
-  cout<<"The Matr Is:"<<endl;
+  firstApprSet(tempAppr);
+  cout<< "The N is : " << N << endl;
+  cout<<"The A(shorted) Is:"<<endl;
   outMatr(A);
-  cout<<"The Vector Is:"<<endl;
+  cout<<"The B(shorted) Is:"<<endl;
   outVector(B);
+  cout<<"The first appr Is:"<<endl;
+  outVector(tempAppr);
   cout<<"The last approximation Is:"<<endl;
   outVector(firstAppr);
-  cout<<"The Vector of ownValues:"<<endl;
-  outReal1Array(wr);
+  // cout<<"The Vector of ownValues:"<<endl;
+  // outReal1Array(wr);
   cout<<"The Max alpha Is:"<<endl;
   cout<<AlphaMax<<endl;
   cout<<"The Min alpha Is:"<<endl;
@@ -221,6 +209,8 @@ int main(){
   cout<<ksi<<endl;
   cout<<"The ro0 is:"<<endl;
   cout<<ro0<<endl;
+  cout<<"The ro1 is:"<<endl;
+  cout<<ro1<<endl;
   cout<<"The maxIter is:"<<endl;
   cout<<maxIter<<endl;
   // unsigned int end_time = clock(); // конечное время
