@@ -37,16 +37,18 @@ using namespace alglib;
 using namespace alglib_impl;
 
 void outVector (vector<double> B){
-    int additions = B.size() / 4;
+    // int additions = B.size() / 4;
+    int additions = 1;
     cout<< B[0] << " ";
-    for (int i = 1; i < 4; i++){
-        cout<< B[i * additions] << " ";
+    for (int i = additions; i < B.size() - 1; i += additions){
+        cout<< B[i] << " ";
     }
     cout<< B[B.size() - 1] << " ";
     cout<<endl;
 }
 void outMatr (vector<vector<double> > A){
-    int additions = A.size() / 4;
+    // int additions = A.size() / 4;
+    int additions = 1;
     outVector(A[0]);
     for (int i = additions; i < A.size() - 1; i += additions){
         outVector(A[i]);
@@ -57,10 +59,10 @@ double F (double c) {
     return c;
 }
 void readMatr (vector<vector<double> > &A){
-    A[0][0] = 1;
-    A[A.size() - 1][A.size() - 1] = 1;
+    A[0][0] = 1. ;
+    A[A.size() - 1][A.size() - 1] = 1.;
     for (int i = 1; i < A.size() - 1; i++) {
-        A[i][i - 1] = -1. ;
+        A[i][i - 1] = -1.;
         A[i][i] = 2.;
         A[i][i + 1] = -1.;
     }
@@ -68,7 +70,7 @@ void readMatr (vector<vector<double> > &A){
 void readVector (vector<double> &B){
     B[0] = 0;
     for (int i = 1; i < B.size() - 1; i++) {
-        B[i] = F(i / (double) (B.size()));
+        B[i] = F(i / (double) (B.size() - 1));
     }
     B[B.size() - 1] = 0;
 }
@@ -102,16 +104,25 @@ double findMinRealArr (alglib::real_1d_array const wr) {
     return min;
 }
 
-double nextTau (vector<double> Tau, double ro0, int n) {
-    double tk = cos ((2 * Tau.size() - 1) * M_PI / (2 * n));
-    return Tau[0] / (1 + ro0 * tk);
+double nextTau (vector<double> Tau, double ro0, int n, vector<double> optTau) {
+    double tk = cos (( optTau[Tau.size() - 1]) * M_PI / (2 * n));
+    // return Tau[0] / (1 + ro0 * tk);
+    // if ((Tau[0] / (1 + ro0 * tk) - Tau[Tau.size() - 1]) > 1.) {
+        // counter--;
+        // return Tau[counter];
+    // } else {
+        // counter = Tau.size();
+        return Tau[0] / (1 + ro0 * tk);
+    // }
+    // return 2 / (max + min + (max - min) * tk);
 }
-int findMaxIter (double eps, double ro1) {
-    return ceil(log (2. / eps) / log (1. / ro1));
+int findMaxIter (double eps, double ksi) {
+    // return ceil(log (2. / eps) / (2. * sqrt(ksi)));
+    return ceil(log (2. / eps) / (2. * sqrt(ksi)));
 }
 void firstApprSet(vector<double>& firstAppr) {
-    for (int i = 1; i < firstAppr.size(); ++i) {
-        firstAppr[i] = 1;
+    for (int i = 0; i < firstAppr.size(); ++i) {
+        firstAppr[i] = F(i / (double) (firstAppr.size() - 1)) / 2;
     }
 }
 double aMulX(vector<vector<double> > A, vector<double> X, int j){
@@ -121,11 +132,68 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j){
     }
     return res;
 }
+void decToDuo(vector<double> &duo, int maxIter) {
+    // while (maxIter > 0) {
+    //     duo.push_back(maxIter % 2);
+    //     maxIter /= 2;
+    // }
+    vector<double> temp(0);
+    while (maxIter > 1) {
+        if (maxIter % 2 != 0) {
+                temp.push_back(1);
+                maxIter--;
+        } else {
+            temp.push_back(0);
+            maxIter /= 2;
+        }
+    }
+    for (int j = 0; j < temp.size(); j++) {
+        /* code */
+        duo.push_back(temp[temp.size() - j - 1]);
+    }
+}
+void calculateOptTau(vector<double> &optTau, vector<double> duo) {
+    vector<double> temp(0);
+    double coord = 0;
+    double number = 1;
+    // duo[0] = 0;
+    // duo.erase(duo.begin() + duo.size() - 1);
+    for (int i = 0; i < duo.size(); i++) {
+        temp.clear();
+        coord = 0;
+        if (duo[i] == 0) {
+            number *= 2;
+            if ((i + 1 == duo.size()) || (duo[i + 1] == 0)) {
+                /*normal*/
+                coord = 0;
+            } else {
+                /*4m+2*/
+                coord = 2;
+            }
+            for (int j = 0; j < optTau.size(); j++) {
+                temp.push_back(optTau[j]);
+                temp.push_back(4 * optTau.size() + coord - optTau[j]);
+            }
+        } else {
+            number += 1;
+            /*+1*/
+            for (int j = 0; j < optTau.size(); j++) {
+                temp.push_back(optTau[j]);
+            }
+            temp.push_back(number);
+        }
+        optTau.clear();
+        for (int j = 0; j < temp.size(); j++) {
+            optTau.push_back(temp[j]);
+        }
+        outVector(optTau);
+    }
+}
 int main(){
     unsigned int start_time =  clock();
     double t0 = dsecnd();
 
-  int N = 20;
+  int N = 100;
 
   /*
   * Getting inputs A and B
@@ -158,22 +226,29 @@ int main(){
   alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
   double AlphaMax = findMaxRealArr(wr);
   double AlphaMin = findMinRealArr(wr);
-  Tau[0] = 2 / (AlphaMax + AlphaMin);
+  Tau[0] = 2. / (AlphaMax + AlphaMin);
   double ksi = AlphaMin / AlphaMax;
-  double ro0 = (1 - ksi) / (1 + ksi);
-  double ro1 = (1 - sqrt(ksi)) / (1 + sqrt(ksi));
-  int maxIter = findMaxIter(eps, ro1);
+  double ro0 = (1. - ksi) / (1. + ksi);
+  double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
+  int maxIter = findMaxIter(eps, ksi);
+  int counter = 0;
+  vector<double> optTau(1, 1);
+  vector<double> duo(0);
+  decToDuo(duo, maxIter);
+  calculateOptTau(optTau, duo);
+  for (int i = 1; i < maxIter + 1; ++i) Tau.push_back(nextTau(Tau, ro0, maxIter, optTau));
 
-  for (int i = 1; i < maxIter + 1; ++i) Tau.push_back(nextTau(Tau, ro0, maxIter));
+  // for (int i = 1; i < maxIter; ++i) optTau
+  // for (int i = N; i < maxIter + 1; ++i) Tau.push_back(Tau[i % N]);
 
   /*
   *main loop here
   */
 
-  for (int i = 1; i < maxIter; ++i) {
+  for (int i = 1; i < maxIter + 1; ++i) {
       cout<<"The "<<i<<" iter"<<endl;
       for (int j = 0; j < N; ++j) {
-          tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
+          tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i] + firstAppr[j];
       }
       firstAppr = tempAppr;
       outVector(firstAppr);
@@ -193,6 +268,10 @@ int main(){
   outMatr(A);
   cout<<"The B(shorted) Is:"<<endl;
   outVector(B);
+  cout<<"The duo(shorted) Is:"<<endl;
+  outVector(duo);
+  cout<<"The opt(shorted) Is:"<<endl;
+  outVector(optTau);
   cout<<"The first appr Is:"<<endl;
   outVector(tempAppr);
   cout<<"The last approximation Is:"<<endl;
@@ -216,6 +295,6 @@ int main(){
   // unsigned int end_time = clock(); // конечное время
   // unsigned int search_time = end_time - start_time; // искомое время
   cout<<"The time is:"<<endl;
-  cout<< dsecnd() - t0 <<" ms"<<endl;
+  cout<< dsecnd() - t0 <<" s"<<endl;
   return 0;
 }
