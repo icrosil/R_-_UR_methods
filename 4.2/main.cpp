@@ -193,7 +193,7 @@ int main(){
     unsigned int start_time =  clock();
     double t0 = dsecnd();
 
-  int N = 100;
+  int N = 200;
 
   /*
   * Getting inputs A and B
