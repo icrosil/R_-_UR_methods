@@ -46,6 +46,16 @@ void outVector (vector<double> B){
     cout<< B[B.size() - 1] << " ";
     cout<<endl;
 }
+void outVector (double* B, int N){
+    // int additions = B.size() / 4;
+    int additions = 1;
+    cout<< B[0] << " ";
+    for (int i = additions; i < N - 1; i += additions){
+        cout<< B[i] << " ";
+    }
+    cout<< B[N - 1] << " ";
+    cout<<endl;
+}
 void outMatr (vector<vector<double> > A){
     // int additions = A.size() / 4;
     int additions = 1;
@@ -218,7 +228,7 @@ int main(){
     unsigned int start_time =  clock();
     double t0 = dsecnd();
 
-  int N = 200;
+  int N = 100;
 
   /*
   * Getting inputs A and B
@@ -279,29 +289,27 @@ int main(){
      cudaMalloc((void **)&d_b, size * N);
      cudaMalloc((void **)&d_c, size);
      cudaMalloc((void **)&d_d, size * N);
-     
+
      for (int j = 0; j < N; j++) {
          temp[j] = 0;
          b[j] = B[j];
          fa[j] = firstAppr[j];
      }
     cudaMemcpy(d_a, b, size * N, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_b, temp, size * N, cudaMemcpyHostToDevice);
     cudaMemcpy(d_d, fa, size * N, cudaMemcpyHostToDevice);
-       for (int i = 1; i < maxIter; ++i) {
+       for (int i = 1; i < maxIter + 1; ++i) {
            cout<<"The "<<i<<" iter"<<endl;
            temp = aMulXVector(A, firstAppr);
-           cudaMemcpy(d_c, &Tau[i - 1], size, cudaMemcpyHostToDevice);
+           cout<<"The temp is"<<endl;
+           outVector(temp, N);
+           cout<<endl;
+           cudaMemcpy(d_c, &Tau[i], size, cudaMemcpyHostToDevice);
+           cudaMemcpy(d_b, temp, size * N, cudaMemcpyHostToDevice);
            mykernel<<<N,1>>>(d_a, d_b, d_c, d_d);
-           cudaMemcpy(fa, d_d, size * N, cudaMemcpyHostToDevice);
+           cudaMemcpy(fa, d_d, size * N, cudaMemcpyDeviceToHost);
            for (int j = 0; j < N; j++) {
                firstAppr[j] = fa[j];
            }
-         //   tempAppr = mykernel<<<1,1>>>(B, temp, Tau[i - 1], firstAppr);
-         //   for (int j = 0; j < N; ++j) {
-         //       tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
-         //   }
-         //   firstAppr = tempAppr;
            outVector(firstAppr);
            cout<<endl;
        }

@@ -193,7 +193,7 @@ int main(){
     unsigned int start_time =  clock();
     double t0 = dsecnd();
 
-  int N = 200;
+  int N = 100;
 
   /*
   * Getting inputs A and B
@@ -247,9 +247,12 @@ int main(){
 
   for (int i = 1; i < maxIter + 1; ++i) {
       cout<<"The "<<i<<" iter"<<endl;
+      cout<<"The temp is"<<endl;
       for (int j = 0; j < N; ++j) {
+          cout<<aMulX(A, firstAppr, j)<<" ";
           tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i] + firstAppr[j];
       }
+      cout<<endl;
       firstAppr = tempAppr;
       outVector(firstAppr);
       cout<<endl;
