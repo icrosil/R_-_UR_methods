@@ -225,148 +225,138 @@ __global__ void mykernel (double *a, double *b, double *c, double *d) {
 
 
 int main(){
-    unsigned int start_time =  clock();
+    /**
+     * t0 is for documenting whole processing time
+     * @type double
+     */
     double t0 = dsecnd();
+    /**
+     * N is for number of points of SLAU
+     * @type int
+     */
+    int N = 10;
 
-  int N = 100;
+    /*
+    * Getting inputs A and B
+    */
+    vector<vector<double> > A(N, vector<double>(N, 0));
+    readMatr(A);
+    vector<double> B(N, 0);
+    vector<double> Tau(1, 0);
+    vector<double> firstAppr(N, 0);
+    vector<double> tempAppr(N, 0);
+    firstApprSet(firstAppr);
+    readVector(B);
+    alglib::real_2d_array matrix;
+    matrix.setcontent(N, N, arrToRealArr(A));
+    double eps = 0.00001;
+    /*
+    *creating another parts
+    *wr - целые части собственных чисел
+    *wi - мнимые части собственных чисел
+    *vl - собственный левый вектор
+    *vr - собственный правый вектор
+    */
+    alglib::real_1d_array wr;
+    alglib::real_1d_array wi;
+    alglib::real_2d_array vl;
+    alglib::real_2d_array vr;
+    /*
+    * расчет собственных чисел
+    */
+    alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
+    double AlphaMax = findMaxRealArr(wr);
+    double AlphaMin = findMinRealArr(wr);
+    Tau[0] = 2. / (AlphaMax + AlphaMin);
+    double ksi = AlphaMin / AlphaMax;
+    double ro0 = (1. - ksi) / (1. + ksi);
+    double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
+    int maxIter = findMaxIter(eps, ksi);
+    int counter = 0;
+    vector<double> optTau(1, 1);
+    vector<double> duo(0);
+    decToDuo(duo, maxIter);
+    calculateOptTau(optTau, duo);
+    for (int i = 1; i < maxIter + 1; ++i) Tau.push_back(nextTau(Tau, ro0, maxIter, optTau));
 
-  /*
-  * Getting inputs A and B
-  */
-  vector<vector<double> > A(N, vector<double>(N, 0));
-  readMatr(A);
-  vector<double> B(N, 0);
-  vector<double> Tau(1, 0);
-  vector<double> firstAppr(N, 0);
-  vector<double> tempAppr(N, 0);
-  firstApprSet(firstAppr);
-  readVector(B);
-  alglib::real_2d_array matrix;
-  matrix.setcontent(N, N, arrToRealArr(A));
-  double eps = 0.00001;
-  /*
-  *creating another parts
-  *wr - целые части собственных чисел
-  *wi - мнимые части собственных чисел
-  *vl - собственный левый вектор
-  *vr - собственный правый вектор
-  */
-  alglib::real_1d_array wr;
-  alglib::real_1d_array wi;
-  alglib::real_2d_array vl;
-  alglib::real_2d_array vr;
-  /*
-  * расчет собственных чисел
-  */
-  alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
-  double AlphaMax = findMaxRealArr(wr);
-  double AlphaMin = findMinRealArr(wr);
-  Tau[0] = 2. / (AlphaMax + AlphaMin);
-  double ksi = AlphaMin / AlphaMax;
-  double ro0 = (1. - ksi) / (1. + ksi);
-  double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
-  int maxIter = findMaxIter(eps, ksi);
-  int counter = 0;
-  vector<double> optTau(1, 1);
-  vector<double> duo(0);
-  decToDuo(duo, maxIter);
-  calculateOptTau(optTau, duo);
-  for (int i = 1; i < maxIter + 1; ++i) Tau.push_back(nextTau(Tau, ro0, maxIter, optTau));
 
-  // for (int i = 1; i < maxIter; ++i) optTau
-  // for (int i = N; i < maxIter + 1; ++i) Tau.push_back(Tau[i % N]);
+    /*
+    *main loop here
+    */
+    double *temp = new double [N];
+    double *b = new double [N];
+    double *fa = new double [N];
+    double *d_a, *d_b, *d_c, *d_d;
+    int size = sizeof(double);
 
-  /*
-  *main loop here
-  */
-     double *temp = new double [N];
-     double *b = new double [N];
-     double *fa = new double [N];
-     double *d_a, *d_b, *d_c, *d_d;
-     int size = sizeof(double);
-     
-     cudaMalloc((void **)&d_a, size * N);
-     cudaMalloc((void **)&d_b, size * N);
-     cudaMalloc((void **)&d_c, size);
-     cudaMalloc((void **)&d_d, size * N);
+    cudaMalloc((void **)&d_a, size * N);
+    cudaMalloc((void **)&d_b, size * N);
+    cudaMalloc((void **)&d_c, size);
+    cudaMalloc((void **)&d_d, size * N);
 
-     for (int j = 0; j < N; j++) {
-         temp[j] = 0;
-         b[j] = B[j];
-         fa[j] = firstAppr[j];
-     }
+    for (int j = 0; j < N; j++) {
+        temp[j] = 0;
+        b[j] = B[j];
+        fa[j] = firstAppr[j];
+    }
     cudaMemcpy(d_a, b, size * N, cudaMemcpyHostToDevice);
     cudaMemcpy(d_d, fa, size * N, cudaMemcpyHostToDevice);
-       for (int i = 1; i < maxIter + 1; ++i) {
-           cout<<"The "<<i<<" iter"<<endl;
-           temp = aMulXVector(A, firstAppr);
-           cout<<"The temp is"<<endl;
-           outVector(temp, N);
-           cout<<endl;
-           cudaMemcpy(d_c, &Tau[i], size, cudaMemcpyHostToDevice);
-           cudaMemcpy(d_b, temp, size * N, cudaMemcpyHostToDevice);
-           mykernel<<<N,1>>>(d_a, d_b, d_c, d_d);
-           cudaMemcpy(fa, d_d, size * N, cudaMemcpyDeviceToHost);
-           for (int j = 0; j < N; j++) {
-               firstAppr[j] = fa[j];
-           }
-           outVector(firstAppr);
-           cout<<endl;
+        for (int i = 1; i < maxIter + 1; ++i) {
+            cout<<"The "<<i<<" iter"<<endl;
+            temp = aMulXVector(A, firstAppr);
+            cout<<"The temp is"<<endl;
+            outVector(temp, N);
+            cout<<endl;
+            cudaMemcpy(d_c, &Tau[i], size, cudaMemcpyHostToDevice);
+            cudaMemcpy(d_b, temp, size * N, cudaMemcpyHostToDevice);
+            mykernel<<<N,1>>>(d_a, d_b, d_c, d_d);
+            cudaMemcpy(fa, d_d, size * N, cudaMemcpyDeviceToHost);
+            for (int j = 0; j < N; j++) {
+                firstAppr[j] = fa[j];
+            }
+            outVector(firstAppr);
+            cout<<endl;
        }
-  // for (int i = 1; i < maxIter + 1; ++i) {
-  //     cout<<"The "<<i<<" iter"<<endl;
-  //     for (int j = 0; j < N; ++j) {
-  //         tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i] + firstAppr[j];
-  //     }
-  //     firstAppr = tempAppr;
-  //     outVector(firstAppr);
-  //     cout<<endl;
-  // }
 
-
-  for (int i = 0; i < firstAppr.size(); i++) {
-      firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
-  }
-     cudaFree(d_a);
-     cudaFree(d_b);
-     cudaFree(d_c);
-     cudaFree(d_d);
-  /*
-  * outing
-  */
-  firstApprSet(tempAppr);
-  cout<< "The N is : " << N << endl;
-  cout<<"The A(shorted) Is:"<<endl;
-  outMatr(A);
-  cout<<"The B(shorted) Is:"<<endl;
-  outVector(B);
-  cout<<"The duo(shorted) Is:"<<endl;
-  outVector(duo);
-  cout<<"The opt(shorted) Is:"<<endl;
-  outVector(optTau);
-  cout<<"The first appr Is:"<<endl;
-  outVector(tempAppr);
-  cout<<"The last approximation Is:"<<endl;
-  outVector(firstAppr);
-  // cout<<"The Vector of ownValues:"<<endl;
-  // outReal1Array(wr);
-  cout<<"The Max alpha Is:"<<endl;
-  cout<<AlphaMax<<endl;
-  cout<<"The Min alpha Is:"<<endl;
-  cout<<AlphaMin<<endl;
-  cout<<"The Tau is:"<<endl;
-  outVector(Tau);
-  cout<<"The ksi is:"<<endl;
-  cout<<ksi<<endl;
-  cout<<"The ro0 is:"<<endl;
-  cout<<ro0<<endl;
-  cout<<"The ro1 is:"<<endl;
-  cout<<ro1<<endl;
-  cout<<"The maxIter is:"<<endl;
-  cout<<maxIter<<endl;
-  // unsigned int end_time = clock(); // конечное время
-  // unsigned int search_time = end_time - start_time; // искомое время
-  cout<<"The time is:"<<endl;
-  cout<< dsecnd() - t0 <<" s"<<endl;
-  return 0;
+    for (int i = 0; i < firstAppr.size(); i++) {
+        firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
+    }
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_c);
+    cudaFree(d_d);
+    /*
+    * outing
+    */
+    firstApprSet(tempAppr);
+    cout<< "The N is : " << N << endl;
+    cout<<"The A(shorted) Is:"<<endl;
+    outMatr(A);
+    cout<<"The B(shorted) Is:"<<endl;
+    outVector(B);
+    cout<<"The duo(shorted) Is:"<<endl;
+    outVector(duo);
+    cout<<"The opt(shorted) Is:"<<endl;
+    outVector(optTau);
+    cout<<"The first appr Is:"<<endl;
+    outVector(tempAppr);
+    cout<<"The last approximation Is:"<<endl;
+    outVector(firstAppr);
+    cout<<"The Max alpha Is:"<<endl;
+    cout<<AlphaMax<<endl;
+    cout<<"The Min alpha Is:"<<endl;
+    cout<<AlphaMin<<endl;
+    cout<<"The Tau is:"<<endl;
+    outVector(Tau);
+    cout<<"The ksi is:"<<endl;
+    cout<<ksi<<endl;
+    cout<<"The ro0 is:"<<endl;
+    cout<<ro0<<endl;
+    cout<<"The ro1 is:"<<endl;
+    cout<<ro1<<endl;
+    cout<<"The maxIter is:"<<endl;
+    cout<<maxIter<<endl;
+    cout<<"The time is:"<<endl;
+    cout<< dsecnd() - t0 <<" s"<<endl;
+    return 0;
 }
