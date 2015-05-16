@@ -57,25 +57,29 @@ void outMatr (vector<vector<double> > A){
 }
 double F (double x, double y) {
     // cout<<x<<" "<<y<<endl;
-    return - 2 * (x * x) - 2 * (y * y);
+    return 0;
+}
+double U (double x, double y) {
+    // cout<<x<<" "<<y<<endl;
+    return x + y;
 }
 void readMatr (vector<vector<double> > &A){
-    A[0][0] = 4. ;
-    A[0][1] = -1. ;
-    A[A.size() - 1][A.size() - 1] = 4.;
-    A[A.size() - 1][A.size() - 2] = -1.;
+    A[0][0] = -4. ;
+    A[0][1] = 1. ;
+    A[A.size() - 1][A.size() - 1] = -4.;
+    A[A.size() - 1][A.size() - 2] = 1.;
     for (int i = 1; i < A.size() - 1; i++) {
-        A[i][i - 1] = -1.;
-        A[i][i] = 4.;
-        A[i][i + 1] = -1.;
+        A[i][i - 1] = 1.;
+        A[i][i] = -4.;
+        A[i][i + 1] = 1.;
     }
 }
 void readVector (vector<vector<double> >& B){
     for (int i = 0; i < B.size(); i++) {
-        B[i][B.size() - 1] = 1;
-        B[B.size() - 1][i] = 1;
-        B[0][i] = 0;
-        B[i][0] = 0;
+        B[i][0] = U(i / (double) (B.size() - 1), 0);
+        B[0][i] = U(0, i / (double) (B.size() - 1));
+        B[B.size() - 1][i] = U(1, i / (double) (B.size() - 1));
+        B[i][B.size() - 1] = U(i / (double) (B.size() - 1), 1);
     }
     for (int i = 1; i < B.size() - 1; ++i) {
         for (int j = 1; j < B.size() - 1; ++j) {
@@ -129,16 +133,16 @@ int findMaxIter (double eps, double ksi) {
     // return ceil(log (2. / eps) / (2. * sqrt(ksi)));
     return ceil(log (2. / eps) / (2. * sqrt(ksi)));
 }
-void firstApprSet(vector<vector<double> >& firstAppr) {
-    for (int i = 0; i < firstAppr.size(); i++) {
-        firstAppr[i][firstAppr.size() - 1] = 1;
-        firstAppr[firstAppr.size() - 1][i] = 1;
-        firstAppr[0][i] = 0;
-        firstAppr[i][0] = 0;
+void firstApprSet(vector<vector<double> >& B) {
+    for (int i = 0; i < B.size(); i++) {
+        B[i][0] = U(i / (double) (B.size() - 1), 0);
+        B[0][i] = U(0, i / (double) (B.size() - 1));
+        B[B.size() - 1][i] = U(1, i / (double) (B.size() - 1));
+        B[i][B.size() - 1] = U(i / (double) (B.size() - 1), 1);
     }
-    for (int i = 1; i < firstAppr.size() - 1; ++i) {
-        for (int j = 1; j < firstAppr.size() - 1; ++j) {
-            firstAppr[i][j] = F(i / (double) (firstAppr.size() - 1), j / (double) (firstAppr.size() - 1) ) / 2;
+    for (int i = 1; i < B.size() - 1; ++i) {
+        for (int j = 1; j < B.size() - 1; ++j) {
+            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1) ) / 2.;
         }
     }
 }
@@ -209,7 +213,7 @@ void calculateOptTau(vector<double> &optTau, vector<double> duo) {
 int main(){
     double t0 = dsecnd();
 
-  int N = 5;
+  int N = 10;
 
   /*
   * Getting inputs A and B
@@ -246,7 +250,7 @@ int main(){
   double ksi = AlphaMin / AlphaMax;
   double ro0 = (1. - ksi) / (1. + ksi);
   double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
-  int maxIter = findMaxIter(eps, ksi);
+  int maxIter = findMaxIter(eps, ksi) + 100;
   vector<double> optTau(1, 1);
   vector<double> duo(0);
   decToDuo(duo, maxIter);
@@ -255,14 +259,14 @@ int main(){
   /*
   *main loop here
   */
-
+  firstApprSet(tempAppr);
   for (int i = 1; i < maxIter + 1; ++i) {
       cout<<"The "<<i<<" iter"<<endl;
       cout<<"The temp is"<<endl;
       for (int j = 1; j < N - 1; ++j) {
           for (int k = 1; k < N - 1; k++) {
-              tempAppr[j][k] = (B[j][k] - (firstAppr[j][k + 1] + firstAppr[j][k - 1] +
-firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])) * Tau[i] + firstAppr[j][k];
+              tempAppr[j][k] = (-B[j][k] + firstAppr[j][k + 1] + firstAppr[j][k - 1] +
+firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k]) * Tau[i] + firstAppr[j][k];
           }
       }
       cout<<endl;
@@ -271,14 +275,14 @@ firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])) * Tau[i] + fir
       cout<<endl;
   }
 
-  for (int i = 0; i < firstAppr.size(); i++) {
-      for (int j = 0; j < firstAppr.size(); j++) {
-          firstAppr[i][j] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
-      }
-  }
-  // /*
-  // * outing
-  // */
+  // for (int i = 0; i < firstAppr.size(); i++) {
+  //     for (int j = 0; j < firstAppr.size(); j++) {
+  //         firstAppr[i][j] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
+  //     }
+  // }
+  /*
+  * outing
+  */
   firstApprSet(tempAppr);
   cout<< "The N is : " << N << endl;
   cout<<"The A(shorted) Is:"<<endl;
