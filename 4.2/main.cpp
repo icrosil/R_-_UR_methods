@@ -55,13 +55,13 @@ void outMatr (vector<vector<double> > A){
     }
     outVector(A[A.size() - 1]);
 }
-double F (double x, double y) {
+double F (double x, double y, double N) {
     // cout<<x<<" "<<y<<endl;
-    return 0;
+    return (2 * sin(y) - x * x * sin(y)) / N;
 }
 double U (double x, double y) {
     // cout<<x<<" "<<y<<endl;
-    return x + y;
+    return x * x * sin(y) + 1;
 }
 void readMatr (vector<vector<double> > &A){
     A[0][0] = -4. ;
@@ -83,7 +83,7 @@ void readVector (vector<vector<double> >& B){
     }
     for (int i = 1; i < B.size() - 1; ++i) {
         for (int j = 1; j < B.size() - 1; ++j) {
-            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1) );
+            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1), (B.size() - 1) * (B.size() - 1));
         }
     }
 }
@@ -129,9 +129,10 @@ double nextTau (vector<double> Tau, double ro0, int n, vector<double> optTau) {
     // }
     // return 2 / (max + min + (max - min) * tk);
 }
-int findMaxIter (double eps, double ksi) {
+int findMaxIter (double eps, double ksi, int N) {
     // return ceil(log (2. / eps) / (2. * sqrt(ksi)));
     return ceil(log (2. / eps) / (2. * sqrt(ksi)));
+    // return ceil(log (N / eps) * N);
 }
 void firstApprSet(vector<vector<double> >& B) {
     for (int i = 0; i < B.size(); i++) {
@@ -142,7 +143,7 @@ void firstApprSet(vector<vector<double> >& B) {
     }
     for (int i = 1; i < B.size() - 1; ++i) {
         for (int j = 1; j < B.size() - 1; ++j) {
-            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1) ) / 2.;
+            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1), (B.size() - 1) * (B.size() - 1)) / 2.;
         }
     }
 }
@@ -213,7 +214,7 @@ void calculateOptTau(vector<double> &optTau, vector<double> duo) {
 int main(){
     double t0 = dsecnd();
 
-  int N = 10;
+  int N = 100;
 
   /*
   * Getting inputs A and B
@@ -250,7 +251,10 @@ int main(){
   double ksi = AlphaMin / AlphaMax;
   double ro0 = (1. - ksi) / (1. + ksi);
   double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
-  int maxIter = findMaxIter(eps, ksi) + 100;
+  int maxIter = findMaxIter(eps, ksi, N);
+  // cout<<"maxIter - "<<maxIter<<endl;
+  // return 0;
+  maxIter = maxIter * N * (int) (N / 5);
   vector<double> optTau(1, 1);
   vector<double> duo(0);
   decToDuo(duo, maxIter);
@@ -265,8 +269,8 @@ int main(){
       cout<<"The temp is"<<endl;
       for (int j = 1; j < N - 1; ++j) {
           for (int k = 1; k < N - 1; k++) {
-              tempAppr[j][k] = (-B[j][k] + firstAppr[j][k + 1] + firstAppr[j][k - 1] +
-firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k]) * Tau[i] + firstAppr[j][k];
+              tempAppr[j][k] = (-B[j][k] + (firstAppr[j][k + 1] + firstAppr[j][k - 1] +
+firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])) * Tau[i] + firstAppr[j][k];
           }
       }
       cout<<endl;
@@ -275,9 +279,9 @@ firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k]) * Tau[i] + firs
       cout<<endl;
   }
 
-  // for (int i = 0; i < firstAppr.size(); i++) {
-  //     for (int j = 0; j < firstAppr.size(); j++) {
-  //         firstAppr[i][j] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
+  // for (int i = 1; i < firstAppr.size() - 1; i++) {
+  //     for (int j = 1; j < firstAppr.size() - 1; j++) {
+  //         firstAppr[i][j] *= N;//((firstAppr.size() - 1) * (firstAppr.size() - 1));
   //     }
   // }
   /*
@@ -313,5 +317,13 @@ firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k]) * Tau[i] + firs
   cout<<maxIter<<endl;
   cout<<"The time is:"<<endl;
   cout<< dsecnd() - t0 <<" s"<<endl;
+  cout<<"The 1 1 is:"<<endl;
+  cout<< firstAppr[1][1]<<endl;
+  cout<<"The 2 2 is:"<<endl;
+  cout<< firstAppr[2][2]<<endl;
+  cout<<"The N - 2 N - 2 is:"<<endl;
+  cout<< firstAppr[firstAppr.size() - 2][firstAppr.size() - 2]<<endl;
+  cout<<"The N - 3 N - 3 is:"<<endl;
+  cout<< firstAppr[firstAppr.size() - 3][firstAppr.size() - 3]<<endl;
   return 0;
 }
