@@ -214,7 +214,7 @@ void calculateOptTau(vector<double> &optTau, vector<double> duo) {
 int main(){
     double t0 = dsecnd();
 
-  int N = 30;
+  int N = 50;
 
   /*
   * Getting inputs A and B

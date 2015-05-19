@@ -276,7 +276,7 @@ int main() {
      * N is for number of points of SLAU
      * @type int
      */
-    int N = 30;
+    int N = 50;
 
     /*
     * Getting inputs A and B
