@@ -46,7 +46,8 @@ void outVector (vector<double> B){
     cout<< B[B.size() - 1] << " ";
     cout<<endl;
 }
-void outVector (double* B, int N){
+void outVector (double* B, int N) {
+    // cout<<"in outVector"<<endl;
     // int additions = B.size() / 4;
     int additions = 1;
     cout<< B[0] << " ";
@@ -55,6 +56,7 @@ void outVector (double* B, int N){
     }
     cout<< B[N - 1] << " ";
     cout<<endl;
+    cout<<"out outVector"<<endl;
 }
 void outMatr (vector<vector<double> > A){
     // int additions = A.size() / 4;
@@ -65,24 +67,37 @@ void outMatr (vector<vector<double> > A){
     }
     outVector(A[A.size() - 1]);
 }
-double F (double c) {
-    return c;
+double F (double x, double y, double N) {
+    // cout<<x<<" "<<y<<endl;
+    return (2 * sin(y) - x * x * sin(y)) / N;
+}
+double U (double x, double y) {
+    // cout<<x<<" "<<y<<endl;
+    return x * x * sin(y) + 1;
 }
 void readMatr (vector<vector<double> > &A){
-    A[0][0] = 1. ;
-    A[A.size() - 1][A.size() - 1] = 1.;
+    A[0][0] = -4. ;
+    A[0][1] = 1. ;
+    A[A.size() - 1][A.size() - 1] = -4.;
+    A[A.size() - 1][A.size() - 2] = 1.;
     for (int i = 1; i < A.size() - 1; i++) {
-        A[i][i - 1] = -1.;
-        A[i][i] = 2.;
-        A[i][i + 1] = -1.;
+        A[i][i - 1] = 1.;
+        A[i][i] = -4.;
+        A[i][i + 1] = 1.;
     }
 }
-void readVector (vector<double> &B){
-    B[0] = 0;
-    for (int i = 1; i < B.size() - 1; i++) {
-        B[i] = F(i / (double) (B.size() - 1));
+void readVector (vector<vector<double> >& B){
+    for (int i = 0; i < B.size(); i++) {
+        B[i][0] = U(i / (double) (B.size() - 1), 0);
+        B[0][i] = U(0, i / (double) (B.size() - 1));
+        B[B.size() - 1][i] = U(1, i / (double) (B.size() - 1));
+        B[i][B.size() - 1] = U(i / (double) (B.size() - 1), 1);
     }
-    B[B.size() - 1] = 0;
+    for (int i = 1; i < B.size() - 1; ++i) {
+        for (int j = 1; j < B.size() - 1; ++j) {
+            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1), (B.size() - 1) * (B.size() - 1));
+        }
+    }
 }
 double* arrToRealArr (vector<vector<double> >const &A){
     double * local;
@@ -130,9 +145,17 @@ int findMaxIter (double eps, double ksi) {
     // return ceil(log (2. / eps) / (2. * sqrt(ksi)));
     return ceil(log (2. / eps) / (2. * sqrt(ksi)));
 }
-void firstApprSet(vector<double>& firstAppr) {
-    for (int i = 0; i < firstAppr.size(); ++i) {
-        firstAppr[i] = F(i / (double) (firstAppr.size() - 1)) / 2;
+void firstApprSet(vector<vector<double> >& B) {
+    for (int i = 0; i < B.size(); i++) {
+        B[i][0] = U(i / (double) (B.size() - 1), 0);
+        B[0][i] = U(0, i / (double) (B.size() - 1));
+        B[B.size() - 1][i] = U(1, i / (double) (B.size() - 1));
+        B[i][B.size() - 1] = U(i / (double) (B.size() - 1), 1);
+    }
+    for (int i = 1; i < B.size() - 1; ++i) {
+        for (int j = 1; j < B.size() - 1; ++j) {
+            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1), (B.size() - 1) * (B.size() - 1)) / 2.;
+        }
     }
 }
 double aMulX(vector<vector<double> > A, vector<double> X, int j){
@@ -211,20 +234,39 @@ double* aMulXVector(vector<vector<double> > A, vector<double> X){
     }
     return res;
 }
+void Shablon(vector<vector<double> > X, double * &res) {
+    // cout<<"size is "<<size;
+    // double *res = new double [size];
+    // cout<<"in Shabo"<<endl;
+    // for (int j = 0; j < size; j++) {
+    //     res[j] = 0;
+    // }
+    cout<<"in Shabo"<<endl;
+    for (int j = 1; j < X.size() - 1; ++j) {
+        for (int i = 1; i < X.size() - 1; ++i) {
+            res[(i - 1) * (X.size() - 2) + (j - 1) ] = X[i + 1][j] + X[i - 1][j] + X[i][j + 1] + X[i][j - 1] - 4. * X[i][j];
+        }
+    }
+    cout<<"out Shabo"<<endl;
+    // return res;
+}
 
 /**
  * CUDA functions
  */
 
-__global__ void mykernel (double *a, double *b, double *c, double *d) {
-//B, temp, Tau[i - 1], firstAppr
+__global__ void mykernel (double *a, double *b, double c, double *d, int n) {
+//B, Shablon, Tau[i - 1], firstAppr
 //tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
-    d[blockIdx.x] = (a[blockIdx.x] - b[blockIdx.x]) * (*c) + d[blockIdx.x];
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if (index < n) {
+        d[index] = (-a[index] + b[index]) * (c) + d[index];
+    }
 }
 
 
 
-int main(){
+int main() {
     /**
      * t0 is for documenting whole processing time
      * @type double
@@ -234,17 +276,17 @@ int main(){
      * N is for number of points of SLAU
      * @type int
      */
-    int N = 10;
+    int N = 30;
 
     /*
     * Getting inputs A and B
     */
     vector<vector<double> > A(N, vector<double>(N, 0));
     readMatr(A);
-    vector<double> B(N, 0);
+    vector<vector<double> > B(N, vector<double>(N, 0));
     vector<double> Tau(1, 0);
-    vector<double> firstAppr(N, 0);
-    vector<double> tempAppr(N, 0);
+    vector<vector<double> > firstAppr(N, vector<double>(N, 0));
+    vector<vector<double> > tempAppr(N, vector<double>(N, 0));
     firstApprSet(firstAppr);
     readVector(B);
     alglib::real_2d_array matrix;
@@ -272,7 +314,7 @@ int main(){
     double ro0 = (1. - ksi) / (1. + ksi);
     double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
     int maxIter = findMaxIter(eps, ksi);
-    int counter = 0;
+    maxIter = maxIter * N * (int) (N / 5);
     vector<double> optTau(1, 1);
     vector<double> duo(0);
     decToDuo(duo, maxIter);
@@ -283,47 +325,53 @@ int main(){
     /*
     *main loop here
     */
-    double *temp = new double [N];
-    double *b = new double [N];
-    double *fa = new double [N];
-    double *d_a, *d_b, *d_c, *d_d;
+    double *temp = new double [N * N - 4 * N + 4];
+    double *b = new double [N * N - 4 * N + 4];
+    double *fa = new double [N * N - 4 * N + 4];
+    double *d_a, *d_b, *d_d;
     int size = sizeof(double);
 
-    cudaMalloc((void **)&d_a, size * N);
-    cudaMalloc((void **)&d_b, size * N);
-    cudaMalloc((void **)&d_c, size);
-    cudaMalloc((void **)&d_d, size * N);
+    cudaMalloc((void **)&d_a, size * (N * N - 4 * N + 4));
+    cudaMalloc((void **)&d_b, size * (N * N - 4 * N + 4));
+    // cudaMalloc((void **)&d_c, size);
+    cudaMalloc((void **)&d_d, size * (N * N - 4 * N + 4));
 
-    for (int j = 0; j < N; j++) {
-        temp[j] = 0;
-        b[j] = B[j];
-        fa[j] = firstAppr[j];
+    for (int j = 1; j < N - 1; j++) {
+        for (int k = 1; k < N - 1; k++) {
+            temp[(j - 1) * (N - 2) + (k - 1)] = 0;
+            b[(j - 1) * (N - 2) + (k - 1)] = B[j][k];
+            fa[(j - 1) * (N - 2) + (k - 1)] = firstAppr[j][k];
+        }
     }
-    cudaMemcpy(d_a, b, size * N, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_d, fa, size * N, cudaMemcpyHostToDevice);
-        for (int i = 1; i < maxIter + 1; ++i) {
-            cout<<"The "<<i<<" iter"<<endl;
-            temp = aMulXVector(A, firstAppr);
-            cout<<"The temp is"<<endl;
-            outVector(temp, N);
-            cout<<endl;
-            cudaMemcpy(d_c, &Tau[i], size, cudaMemcpyHostToDevice);
-            cudaMemcpy(d_b, temp, size * N, cudaMemcpyHostToDevice);
-            mykernel<<<N,1>>>(d_a, d_b, d_c, d_d);
-            cudaMemcpy(fa, d_d, size * N, cudaMemcpyDeviceToHost);
-            for (int j = 0; j < N; j++) {
-                firstAppr[j] = fa[j];
+    cudaMemcpy(d_a, b, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_d, fa, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+    double timeChecker = dsecnd();;
+    for (int i = 1; i < maxIter + 1; ++i) {
+        cout<<"The "<<i<<" iter"<<endl;
+        Shablon(firstAppr, temp);
+        // cout<<"The temp is"<<endl;
+        // outVector(temp, N * N - 4 * N + 4);
+        // cout<<endl<<Tau[i]<<" "<<&Tau[i];
+        // cudaMemcpy(d_c, &Tau[i], size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+        mykernel<<<(N * N - 4 * N + 4) / (N - 2), N - 2>>>(d_a, d_b, Tau[i], d_d, N * N - 4 * N + 4);
+        cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+        for (int j = 1; j < N - 1; j++) {
+            for (int k = 1; k < N - 1; k++) {
+                firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
             }
-            outVector(firstAppr);
-            cout<<endl;
-       }
-
-    for (int i = 0; i < firstAppr.size(); i++) {
-        firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
+        }
+        outMatr(firstAppr);
+        cout<<endl;
     }
+    cout<<dsecnd() - timeChecker<<" time for loop"<<endl;
+
+    // for (int i = 0; i < firstAppr.size(); i++) {
+    //     firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
+    // }
     cudaFree(d_a);
     cudaFree(d_b);
-    cudaFree(d_c);
+    // cudaFree(d_c);
     cudaFree(d_d);
     /*
     * outing
@@ -333,15 +381,15 @@ int main(){
     cout<<"The A(shorted) Is:"<<endl;
     outMatr(A);
     cout<<"The B(shorted) Is:"<<endl;
-    outVector(B);
+    outMatr(B);
     cout<<"The duo(shorted) Is:"<<endl;
     outVector(duo);
     cout<<"The opt(shorted) Is:"<<endl;
     outVector(optTau);
     cout<<"The first appr Is:"<<endl;
-    outVector(tempAppr);
+    outMatr(tempAppr);
     cout<<"The last approximation Is:"<<endl;
-    outVector(firstAppr);
+    outMatr(firstAppr);
     cout<<"The Max alpha Is:"<<endl;
     cout<<AlphaMax<<endl;
     cout<<"The Min alpha Is:"<<endl;
@@ -358,5 +406,13 @@ int main(){
     cout<<maxIter<<endl;
     cout<<"The time is:"<<endl;
     cout<< dsecnd() - t0 <<" s"<<endl;
+    cout<<"The 1 1 is:"<<endl;
+    cout<< firstAppr[1][1]<<endl;
+    cout<<"The 2 2 is:"<<endl;
+    cout<< firstAppr[2][2]<<endl;
+    cout<<"The N - 2 N - 2 is:"<<endl;
+    cout<< firstAppr[firstAppr.size() - 2][firstAppr.size() - 2]<<endl;
+    cout<<"The N - 3 N - 3 is:"<<endl;
+    cout<< firstAppr[firstAppr.size() - 3][firstAppr.size() - 3]<<endl;
     return 0;
 }

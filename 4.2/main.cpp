@@ -214,7 +214,7 @@ void calculateOptTau(vector<double> &optTau, vector<double> duo) {
 int main(){
     double t0 = dsecnd();
 
-  int N = 100;
+  int N = 30;
 
   /*
   * Getting inputs A and B
@@ -263,12 +263,15 @@ int main(){
   /*
   *main loop here
   */
+ double timechecker = dsecnd();
   firstApprSet(tempAppr);
   for (int i = 1; i < maxIter + 1; ++i) {
       cout<<"The "<<i<<" iter"<<endl;
       cout<<"The temp is"<<endl;
       for (int j = 1; j < N - 1; ++j) {
           for (int k = 1; k < N - 1; k++) {
+              cout<< (firstAppr[j][k + 1] + firstAppr[j][k - 1] +
+firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k]) <<" ";
               tempAppr[j][k] = (-B[j][k] + (firstAppr[j][k + 1] + firstAppr[j][k - 1] +
 firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])) * Tau[i] + firstAppr[j][k];
           }
@@ -278,7 +281,7 @@ firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])) * Tau[i] + fir
       outMatr(firstAppr);
       cout<<endl;
   }
-
+  cout<<"main loop "<<dsecnd() - timechecker<<endl;
   // for (int i = 1; i < firstAppr.size() - 1; i++) {
   //     for (int j = 1; j < firstAppr.size() - 1; j++) {
   //         firstAppr[i][j] *= N;//((firstAppr.size() - 1) * (firstAppr.size() - 1));
