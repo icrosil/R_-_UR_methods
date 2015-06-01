@@ -76,14 +76,23 @@ double U (double x, double y) {
     return x * x * sin(y) + 1;
 }
 void readMatr (vector<vector<double> > &A){
-    A[0][0] = -4. ;
-    A[0][1] = 1. ;
-    A[A.size() - 1][A.size() - 1] = -4.;
-    A[A.size() - 1][A.size() - 2] = 1.;
+    int sizer = (int) sqrt(A.size());
+    A[0][0] = -4;
+    A[A.size() - 1][A.size() - 1] = -4;
+    A[0][1] = 1;
+    A[A.size() - 1][A.size() - 2] = 1;
     for (int i = 1; i < A.size() - 1; i++) {
-        A[i][i - 1] = 1.;
-        A[i][i] = -4.;
-        A[i][i + 1] = 1.;
+        A[i][i] = -4;
+        if (!((i % sizer) == 0)) {
+            A[i][i - 1] = 1;
+        }
+        if (!(((i - 1) % sizer) == 0)) {
+            A[i][i + 1] = 1;
+        }
+    }
+    for (int i = 0; i < A.size() - sizer; i++) {
+        A[i][i + sizer] = 1;
+        A[i + sizer][i] = 1;
     }
 }
 void readVector (vector<vector<double> >& B){
@@ -255,13 +264,40 @@ void Shablon(vector<vector<double> > X, double * &res) {
  * CUDA functions
  */
 
+ #ifndef N
+ #define N 15
+ #endif
+
+__device__ int barrier = N - 2;
+
 __global__ void mykernel (double *a, double *b, double c, double *d, int n) {
 //B, Shablon, Tau[i - 1], firstAppr
 //tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
+    //TODO syncthreads will work, so pass needed elements, let them for and sync on every iteration
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index < n) {
         d[index] = (-a[index] + b[index]) * (c) + d[index];
     }
+    // if i ever need an block sync (time expensive), or create own block sync with a vector of 00,
+    // fill them with 1 when block is done and go next if all 1
+    /* Do whatever it is that this block does. */
+
+    
+   //  /* Make sure all threads in this block are actually here. */
+   //  __syncthreads();
+   //  /* Once we're done, decrease the value of the barrier. */
+   // if ( threadIdx.x == 0 )
+   //     atomicSub( &barrier , 1 );
+   // 
+   // /* Now wait for the barrier to be zero. */
+   // if ( threadIdx.x == 0 )
+   //     while ( atomicCAS( &barrier , 0 , 0 ) != 0 );
+   // 
+   // /* Make sure everybody has waited for the barrier. */
+   // __syncthreads();
+   // 
+   // /* Carry on with whatever else you wanted to do. */
+   // barrier = N - 2;
 }
 
 
@@ -276,12 +312,12 @@ int main() {
      * N is for number of points of SLAU
      * @type int
      */
-    int N = 50;
+    // int N = 15;
 
     /*
     * Getting inputs A and B
     */
-    vector<vector<double> > A(N, vector<double>(N, 0));
+    vector<vector<double> > A((N - 2) * (N - 2), vector<double>((N - 2) * (N - 2), 0));
     readMatr(A);
     vector<vector<double> > B(N, vector<double>(N, 0));
     vector<double> Tau(1, 0);
@@ -290,7 +326,7 @@ int main() {
     firstApprSet(firstAppr);
     readVector(B);
     alglib::real_2d_array matrix;
-    matrix.setcontent(N, N, arrToRealArr(A));
+    matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
     double eps = 0.00001;
     /*
     *creating another parts
@@ -306,7 +342,7 @@ int main() {
     /*
     * расчет собственных чисел
     */
-    alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
+    alglib::rmatrixevd(matrix, (N - 2) * (N - 2), 0, wr, wi, vl, vr);
     double AlphaMax = findMaxRealArr(wr);
     double AlphaMin = findMinRealArr(wr);
     Tau[0] = 2. / (AlphaMax + AlphaMin);
@@ -314,7 +350,7 @@ int main() {
     double ro0 = (1. - ksi) / (1. + ksi);
     double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
     int maxIter = findMaxIter(eps, ksi);
-    maxIter = maxIter * N * (int) (N / 5);
+    maxIter = maxIter * 2;
     vector<double> optTau(1, 1);
     vector<double> duo(0);
     decToDuo(duo, maxIter);
@@ -345,7 +381,7 @@ int main() {
     }
     cudaMemcpy(d_a, b, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
     cudaMemcpy(d_d, fa, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-    double timeChecker = dsecnd();;
+    double timeChecker = dsecnd();
     for (int i = 1; i < maxIter + 1; ++i) {
         cout<<"The "<<i<<" iter"<<endl;
         Shablon(firstAppr, temp);
@@ -354,7 +390,7 @@ int main() {
         // cout<<endl<<Tau[i]<<" "<<&Tau[i];
         // cudaMemcpy(d_c, &Tau[i], size, cudaMemcpyHostToDevice);
         cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-        mykernel<<<(N * N - 4 * N + 4) / (N - 2), N - 2>>>(d_a, d_b, Tau[i], d_d, N * N - 4 * N + 4);
+        mykernel<<<N - 2, N - 2>>>(d_a, d_b, Tau[i], d_d, N * N - 4 * N + 4);
         cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
         for (int j = 1; j < N - 1; j++) {
             for (int k = 1; k < N - 1; k++) {
@@ -364,7 +400,7 @@ int main() {
         outMatr(firstAppr);
         cout<<endl;
     }
-    cout<<dsecnd() - timeChecker<<" time for loop"<<endl;
+    double tMain = dsecnd() - timeChecker;
 
     // for (int i = 0; i < firstAppr.size(); i++) {
     //     firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
@@ -406,6 +442,8 @@ int main() {
     cout<<maxIter<<endl;
     cout<<"The time is:"<<endl;
     cout<< dsecnd() - t0 <<" s"<<endl;
+    cout<<"The time of main is:"<<endl;
+    cout<< tMain <<" s"<<endl;
     cout<<"The 1 1 is:"<<endl;
     cout<< firstAppr[1][1]<<endl;
     cout<<"The 2 2 is:"<<endl;

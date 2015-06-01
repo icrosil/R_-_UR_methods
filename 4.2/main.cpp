@@ -64,14 +64,23 @@ double U (double x, double y) {
     return x * x * sin(y) + 1;
 }
 void readMatr (vector<vector<double> > &A){
-    A[0][0] = -4. ;
-    A[0][1] = 1. ;
-    A[A.size() - 1][A.size() - 1] = -4.;
-    A[A.size() - 1][A.size() - 2] = 1.;
+    int sizer = (int) sqrt(A.size());
+    A[0][0] = -4;
+    A[A.size() - 1][A.size() - 1] = -4;
+    A[0][1] = 1;
+    A[A.size() - 1][A.size() - 2] = 1;
     for (int i = 1; i < A.size() - 1; i++) {
-        A[i][i - 1] = 1.;
-        A[i][i] = -4.;
-        A[i][i + 1] = 1.;
+        A[i][i] = -4;
+        if (!((i % sizer) == 0)) {
+            A[i][i - 1] = 1;
+        }
+        if (!(((i - 1) % sizer) == 0)) {
+            A[i][i + 1] = 1;
+        }
+    }
+    for (int i = 0; i < A.size() - sizer; i++) {
+        A[i][i + sizer] = 1;
+        A[i + sizer][i] = 1;
     }
 }
 void readVector (vector<vector<double> >& B){
@@ -211,15 +220,20 @@ void calculateOptTau(vector<double> &optTau, vector<double> duo) {
         outVector(optTau);
     }
 }
+
+#ifndef N
+#define N 15
+#endif
+
 int main(){
     double t0 = dsecnd();
 
-  int N = 50;
+  // int N = 30;
 
   /*
   * Getting inputs A and B
   */
-  vector<vector<double> > A(N, vector<double>(N, 0));
+  vector<vector<double> > A((N - 2) * (N - 2), vector<double>((N - 2) * (N - 2), 0));
   readMatr(A);
   vector<vector<double> > B(N, vector<double>(N, 0));
   vector<double> Tau(1, 0);
@@ -228,7 +242,7 @@ int main(){
   firstApprSet(firstAppr);
   readVector(B);
   alglib::real_2d_array matrix;
-  matrix.setcontent(N, N, arrToRealArr(A));
+  matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
   double eps = 0.00001;
   /*
   *creating another parts
@@ -244,7 +258,7 @@ int main(){
   /*
   * расчет собственных чисел
   */
-  alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
+  alglib::rmatrixevd(matrix, (N - 2) * (N - 2), 0, wr, wi, vl, vr);
   double AlphaMax = findMaxRealArr(wr);
   double AlphaMin = findMinRealArr(wr);
   Tau[0] = 2. / (AlphaMax + AlphaMin);
@@ -254,7 +268,7 @@ int main(){
   int maxIter = findMaxIter(eps, ksi, N);
   // cout<<"maxIter - "<<maxIter<<endl;
   // return 0;
-  maxIter = maxIter * N * (int) (N / 5);
+  maxIter = maxIter * 2;
   vector<double> optTau(1, 1);
   vector<double> duo(0);
   decToDuo(duo, maxIter);
@@ -281,7 +295,7 @@ firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])) * Tau[i] + fir
       outMatr(firstAppr);
       cout<<endl;
   }
-  cout<<"main loop "<<dsecnd() - timechecker<<endl;
+  double tMain = dsecnd() - timechecker;
   // for (int i = 1; i < firstAppr.size() - 1; i++) {
   //     for (int j = 1; j < firstAppr.size() - 1; j++) {
   //         firstAppr[i][j] *= N;//((firstAppr.size() - 1) * (firstAppr.size() - 1));
@@ -320,6 +334,8 @@ firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])) * Tau[i] + fir
   cout<<maxIter<<endl;
   cout<<"The time is:"<<endl;
   cout<< dsecnd() - t0 <<" s"<<endl;
+  cout<<"The time of main is:"<<endl;
+  cout<< tMain <<" s"<<endl;
   cout<<"The 1 1 is:"<<endl;
   cout<< firstAppr[1][1]<<endl;
   cout<<"The 2 2 is:"<<endl;
