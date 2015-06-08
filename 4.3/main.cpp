@@ -29,37 +29,72 @@
 #include "../lib/alglib/src/integration.cpp"
 #include "../lib/alglib/src/interpolation.cpp"
 #include <string>
+#include <ctime>
+#include <mkl.h>
 
 using namespace std;
 using namespace alglib;
 using namespace alglib_impl;
 
-void outMatr (vector<vector<double> > A){
-    for (int i = 0; i < A.size(); ++i){
-        for (int j = 0; j < A[i].size(); ++j){
-            cout<<A[i][j]<<" ";
-        }
-        cout<<endl;
-    }
-}
 void outVector (vector<double> B){
-    for (int i = 0; i < B.size(); ++i){
-        cout<< B[i]<<" ";
+    // int additions = B.size() / 4;
+    int additions = 1;
+    cout<< B[0] << " ";
+    for (int i = additions; i < B.size() - 1; i += additions){
+        cout<< B[i] << " ";
     }
+    cout<< B[B.size() - 1] << " ";
     cout<<endl;
 }
-double F (double c) {
-    return c * c;
+void outMatr (vector<vector<double> > A){
+    // int additions = A.size() / 4;
+    int additions = 1;
+    outVector(A[0]);
+    for (int i = additions; i < A.size() - 1; i += additions){
+        outVector(A[i]);
+    }
+    outVector(A[A.size() - 1]);
+}
+double F (double x, double y, double N) {
+    // cout<<x<<" "<<y<<endl;
+    return (2 * sin(y) - x * x * sin(y)) / N;
+}
+double U (double x, double y) {
+    // cout<<x<<" "<<y<<endl;
+    return x * x * sin(y) + 1;
 }
 void readMatr (vector<vector<double> > &A){
-    A[0][0] = 2;
+    int sizer = (int) sqrt(A.size());
+    A[0][0] = -4;
+    A[A.size() - 1][A.size() - 1] = -4;
     A[0][1] = 1;
-    A[1][0] = 1;
-    A[1][1] = 2;
+    A[A.size() - 1][A.size() - 2] = 1;
+    for (int i = 1; i < A.size() - 1; i++) {
+        A[i][i] = -4;
+        if (!((i % sizer) == 0)) {
+            A[i][i - 1] = 1;
+        }
+        if (!(((i - 1) % sizer) == 0)) {
+            A[i][i + 1] = 1;
+        }
+    }
+    for (int i = 0; i < A.size() - sizer; i++) {
+        A[i][i + sizer] = 1;
+        A[i + sizer][i] = 1;
+    }
 }
-void readVector (vector<double> &B){
-    B[0] = 4;
-    B[1] = 5;
+void readVector (vector<vector<double> >& B){
+    for (int i = 0; i < B.size(); i++) {
+        B[i][0] = U(i / (double) (B.size() - 1), 0);
+        B[0][i] = U(0, i / (double) (B.size() - 1));
+        B[B.size() - 1][i] = U(1, i / (double) (B.size() - 1));
+        B[i][B.size() - 1] = U(i / (double) (B.size() - 1), 1);
+    }
+    for (int i = 1; i < B.size() - 1; ++i) {
+        for (int j = 1; j < B.size() - 1; ++j) {
+            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1), (B.size() - 1) * (B.size() - 1));
+        }
+    }
 }
 double* arrToRealArr (vector<vector<double> >const &A){
     double * local;
@@ -76,6 +111,20 @@ void outReal1Array (alglib::real_1d_array wr) {
     cout<<wr[i]<<" ";
     cout<<endl;
 }
+double findMaxRealArr (alglib::real_1d_array const wr) {
+    double max = fabs(wr[0]);
+    for (int i = 1; i < wr.length(); ++i) {
+        if (fabs(wr[i]) > max) max = fabs(wr[i]);
+    }
+    return max;
+}
+double findMinRealArr (alglib::real_1d_array const wr) {
+    double min = fabs(wr[0]);
+    for (int i = 1; i < wr.length(); ++i) {
+        if (fabs(wr[i]) < min) min = fabs(wr[i]);
+    }
+    return min;
+}
 
 void outReal2Array (alglib::real_2d_array wr, int size) {
     for (int i = 0; i < size; ++i ){
@@ -87,9 +136,17 @@ void outReal2Array (alglib::real_2d_array wr, int size) {
 
 
 
-void firstApprSet(vector<double>& firstAppr) {
-    for (int i = 1; i < firstAppr.size(); ++i) {
-        firstAppr[i] = i;
+void firstApprSet(vector<vector<double> >& B) {
+    for (int i = 0; i < B.size(); i++) {
+        B[i][0] = U(i / (double) (B.size() - 1), 0);
+        B[0][i] = U(0, i / (double) (B.size() - 1));
+        B[B.size() - 1][i] = U(1, i / (double) (B.size() - 1));
+        B[i][B.size() - 1] = U(i / (double) (B.size() - 1), 1);
+    }
+    for (int i = 1; i < B.size() - 1; ++i) {
+        for (int j = 1; j < B.size() - 1; ++j) {
+            B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1), (B.size() - 1) * (B.size() - 1)) / 2.;
+        }
     }
 }
 double aMulX(vector<vector<double> > A, vector<double> X, int j){
@@ -98,14 +155,6 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j){
         res += A[j][i] * X[i];
     }
     return res;
-}
-
-double findMaxRealArr (alglib::real_1d_array wr) {
-    double max = fabs(wr[0]);
-    for (int i = 1; i < wr.length(); ++i){
-        if (fabs(wr[i]) > max) max = wr[i];
-    }
-    return max;
 }
 
 void realArr2dToVectorMatr (alglib::real_2d_array matrix, vector<vector<double> > &A) {
@@ -183,22 +232,30 @@ double DwL (vector<vector<double> > A, int k, double w) {
     return sum;
 }
 
-double findMaxInVector ( vector<double> a) {
-    double max = a[0];
-    for (size_t i = 1; i < a.size(); i++) {
-        if (a[i] > max) max = a[i];
+double findMaxInVector ( vector<vector<double> > a) {
+    double max = a[1][1];
+    for (int i = 2; i < a.size() - 1; i++) {
+        for (int j = 2; j < a.size() - 1; j++) {
+            if (a[i][j] > max) max = a[i][j];
+        }
     }
     return max;
 }
 
-void copyVectors (vector<double> in, vector<double> &out) {
-    for (size_t i = 0; i < in.size(); i++) {
-        out[i] = in[i];
+void copyVectors (vector<vector<double> > in, vector<vector<double> > &out) {
+    for (int i = 0; i < in.size(); i++) {
+        for (int j = 0; j < in[i].size(); j++) {
+            out[i][j] = in[i][j];
+        }
     }
 }
 
-int main(){
+#ifndef N
+#define N 15
+#endif
 
+int main(){
+    double t0 = dsecnd();
   /*
   *TODO: add elliptic diffequations
   *TODO: add CUDA improvements
@@ -209,15 +266,15 @@ int main(){
   * A means main Matr
   * B means right vector
   */
-  int N = 2;
+
   /*
   * Getting inputs A and B
   */
-  vector<vector<double> > A(N, vector<double>(N, 0));
+  vector<vector<double> > A((N - 2) * (N - 2), vector<double>((N - 2) * (N - 2), 0));
   readMatr(A);
-  vector<double> B(N, 0);
-  vector<double> firstAppr(N, 0);
-  vector<double> changeAppr(N, 0);
+  vector<vector<double> > B(N, vector<double>(N, 0));
+  vector<vector<double> > firstAppr(N, vector<double>(N, 0));
+  vector<vector<double> > changeAppr(N, vector<double>(N, 0));
   firstApprSet(firstAppr);
   readVector(B);
   double eps = 0.0001;
@@ -225,7 +282,7 @@ int main(){
   double wOpt;
   double maxDiff = 1;
   alglib::real_2d_array matrix;
-  matrix.setcontent(N, N, arrToRealArr(A));
+  matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
 
   /*
   *creating another parts
@@ -258,13 +315,21 @@ int main(){
         cout<<"The "<<k<<" iter"<<endl;
         copyVectors(firstAppr, changeAppr);
         // outVector(changeAppr);
-        for (int i = 0; i < A.size(); i++) {
-            firstAppr[i] = firstAppr[i] + (B[i] - aMulX(A, firstAppr, i)) * wOpt / (DwL(A, i, wOpt));
+        // for (int i = 0; i < A.size(); i++) {
+        //     firstAppr[i] = firstAppr[i] + (B[i] - aMulX(A, firstAppr, i)) * wOpt / (DwL(A, i, wOpt));
+        // }
+        for (int j = 1; j < N - 1; ++j) {
+            for (int i = 1; i < N - 1; i++) {
+                firstAppr[j][i] = (B[j][i] - (firstAppr[j][i + 1] + firstAppr[j][i - 1] +
+  firstAppr[j + 1][i] + firstAppr[j - 1][i] - 4 * firstAppr[j][i])) * wOpt / (DwL(A, i, wOpt)); + firstAppr[j][i];
+            }
         }
-        for (size_t i = 0; i < firstAppr.size(); i++) {
-            changeAppr[i] = fabs(firstAppr[i] - changeAppr[i]);
+        for (int j = 1; j < N - 1; ++j) {
+            for (int i = 1; i < N - 1; i++) {
+                changeAppr[j][i] = fabs(firstAppr[j][i] - changeAppr[j][i]);
+            }
         }
-        outVector(firstAppr);
+        outMatr(firstAppr);
         // outVector(changeAppr);
         // cout<<findMaxInVector(changeAppr)<<endl;
         maxDiff = findMaxInVector(changeAppr);
@@ -272,15 +337,15 @@ int main(){
     ++k;
 } while (maxDiff > eps);
 firstApprSet(changeAppr);
-  /*
-  * outing
-  */
+//   /*
+//   * outing
+//   */
   cout<<"The Matr Is:"<<endl;
   outMatr(A);
   cout<<"The Vector Is:"<<endl;
-  outVector(B);
+  outMatr(B);
   cout<<"The first approximation Is:"<<endl;
-  outVector(changeAppr);
+  outMatr(changeAppr);
   cout<<"The epsilon Is:"<<endl;
   cout<<eps<<endl;
   cout<<"The Vector of ownValues:"<<endl;
@@ -290,6 +355,16 @@ firstApprSet(changeAppr);
   cout<<"The wOpt Is:"<<endl;
   cout<<wOpt<<endl;
   cout<<"The result Is:"<<endl;
-  outVector(firstAppr);
+  outMatr(firstAppr);
+  cout<<"The time is:"<<endl;
+  cout<< dsecnd() - t0 <<" s"<<endl;
+  cout<<"The 1 1 is:"<<endl;
+  cout<< firstAppr[1][1]<<endl;
+  cout<<"The 2 2 is:"<<endl;
+  cout<< firstAppr[2][2]<<endl;
+  cout<<"The N - 2 N - 2 is:"<<endl;
+  cout<< firstAppr[firstAppr.size() - 2][firstAppr.size() - 2]<<endl;
+  cout<<"The N - 3 N - 3 is:"<<endl;
+  cout<< firstAppr[firstAppr.size() - 3][firstAppr.size() - 3]<<endl;
   return 0;
 }
