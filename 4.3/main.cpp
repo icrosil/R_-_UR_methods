@@ -251,7 +251,7 @@ void copyVectors (vector<vector<double> > in, vector<vector<double> > &out) {
 }
 
 #ifndef N
-#define N 15
+#define N 5
 #endif
 
 int main(){
@@ -311,17 +311,23 @@ int main(){
   *если я правильно понял то новые вычисления нужно тут же использовать, исхожу из этого мнения
   */
   int k = 0;
+  char aber;
   do {
         cout<<"The "<<k<<" iter"<<endl;
         copyVectors(firstAppr, changeAppr);
-        // outVector(changeAppr);
+        // cout<<"change: "<<endl;
+        // outMatr(changeAppr);
+        // cout<<"fa: "<<endl;
+        // outMatr(firstAppr);
+        // cin>>aber;
         // for (int i = 0; i < A.size(); i++) {
         //     firstAppr[i] = firstAppr[i] + (B[i] - aMulX(A, firstAppr, i)) * wOpt / (DwL(A, i, wOpt));
         // }
         for (int j = 1; j < N - 1; ++j) {
             for (int i = 1; i < N - 1; i++) {
-                firstAppr[j][i] = (B[j][i] - (firstAppr[j][i + 1] + firstAppr[j][i - 1] +
-  firstAppr[j + 1][i] + firstAppr[j - 1][i] - 4 * firstAppr[j][i])) * wOpt / (DwL(A, i, wOpt)); + firstAppr[j][i];
+  //               firstAppr[j][i] = (B[j][i] - (firstAppr[j][i + 1] + firstAppr[j][i - 1] +
+  // firstAppr[j + 1][i] + firstAppr[j - 1][i] - 4 * firstAppr[j][i])) * wOpt / (DwL(A, i, wOpt)); + firstAppr[j][i];
+                firstAppr[j][i] = (-B[j][i] + firstAppr[j + 1][i] + firstAppr[j - 1][i] + firstAppr[j][i - 1] + firstAppr[j][i + 1] - 4 * (1 - 1. / wOpt) * firstAppr[j][i]) * wOpt / 4.;
             }
         }
         for (int j = 1; j < N - 1; ++j) {

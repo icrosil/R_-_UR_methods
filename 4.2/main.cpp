@@ -222,7 +222,7 @@ void calculateOptTau(vector<double> &optTau, vector<double> duo) {
 }
 
 #ifndef N
-#define N 15
+#define N 5
 #endif
 
 int main(){
