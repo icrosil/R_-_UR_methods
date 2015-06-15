@@ -251,7 +251,7 @@ void copyVectors (vector<vector<double> > in, vector<vector<double> > &out) {
 }
 
 #ifndef N
-#define N 5
+#define N 25
 #endif
 
 int main(){
@@ -312,6 +312,7 @@ int main(){
   */
   int k = 0;
   char aber;
+  double timeChecker = dsecnd();
   do {
         cout<<"The "<<k<<" iter"<<endl;
         copyVectors(firstAppr, changeAppr);
@@ -342,6 +343,7 @@ int main(){
         // system("pause");
     ++k;
 } while (maxDiff > eps);
+timeChecker = dsecnd() - timeChecker;
 firstApprSet(changeAppr);
 //   /*
 //   * outing
@@ -364,6 +366,8 @@ firstApprSet(changeAppr);
   outMatr(firstAppr);
   cout<<"The time is:"<<endl;
   cout<< dsecnd() - t0 <<" s"<<endl;
+  cout<<"The time of main is:"<<endl;
+  cout<< timeChecker <<" s"<<endl;
   cout<<"The 1 1 is:"<<endl;
   cout<< firstAppr[1][1]<<endl;
   cout<<"The 2 2 is:"<<endl;
