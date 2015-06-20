@@ -266,7 +266,8 @@ void Shablon(vector<vector<double> > X, double * &res) {
  */
 
  #ifndef N
- #define N 15
+ #define N 25
+
  #endif
 
 __device__ int barrier = N - 2;
