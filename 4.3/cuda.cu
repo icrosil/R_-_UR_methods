@@ -53,6 +53,7 @@ void outVector (double* B, int N) {
     cout<< B[0] << " ";
     for (int i = additions; i < N - 1; i += additions){
         cout<< B[i] << " ";
+        if (((i - 1) % (int)sqrt(N)) == 0) cout<<endl;
     }
     cout<< B[N - 1] << " ";
     cout<<endl;
@@ -272,7 +273,7 @@ void copyVectors (vector<vector<double> > in, vector<vector<double> > &out) {
  * CUDA functions
  */
  #ifndef N
- #define N 25
+ #define N 50
  #endif
 
  __device__ int blocks = N - 2;
@@ -289,6 +290,21 @@ void copyVectors (vector<vector<double> > in, vector<vector<double> > &out) {
          fa[index1] = (-rightSide[index1] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1] - 4 * (1 - 1. / wOpt) * all[lindex]) * wOpt / 4.;
          diff[index1] = fa[index1] - all[lindex];
          all[lindex] = fa[index1];
+     }
+
+ }
+ __global__ void my_red_black_kernel (double *rightSide, double wOpt, double *fa, double *diff, int n, double *all, int litN, int first) {
+ //tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
+
+     int index = threadIdx.x + blockIdx.x * blockDim.x;
+     int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
+     int row = (int)(index / litN);
+     int str = index % litN;
+     if (index < n && ((row + str) % 2 == first)) {
+         //fa[index] = index;
+          fa[index] = (-rightSide[index] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1] - 4 * (1 - 1. / wOpt) * all[lindex]) * wOpt / 4.;
+         diff[index] = fa[index] - all[lindex];
+         all[lindex] = fa[index];
      }
 
  }
@@ -381,8 +397,22 @@ int main(){
   cudaMemcpy(d_diff, diff, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   double timeChecker = dsecnd();
   int n = N - 2;
+  for(int k = n; k > 0; --k){
+      for (int j = 0,i = 0; i < 2 * k - 1; i++) {
+          if (i < n) {
+              ++j;
+          } else {
+              --j;
+          }
+          mykernel<<<1, j>>>(d_rs, wOpt, d_fa, d_diff, N * N - 4 * N + 4, d_all, i, j, n);
+      }
+  }
+  cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+  outVector(fa, N * N - 4 * N + 4);
+// cin>>aber;
+  cudaMemcpy(diff, d_diff, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
   do {
-      outVector(diff, N * N - 4 * N + 4);
+    //   outVector(diff, N * N - 4 * N + 4);
         // diff[0] = 0;
         // cudaMemcpy(d_diff, diff, size, cudaMemcpyHostToDevice);
         cout<<"The "<<k<<" iter"<<endl;
@@ -399,18 +429,25 @@ int main(){
         //     for (int i = 1; i < N - 1; i++) {
   //               firstAppr[j][i] = (B[j][i] - (firstAppr[j][i + 1] + firstAppr[j][i - 1] +
   // firstAppr[j + 1][i] + firstAppr[j - 1][i] - 4 * firstAppr[j][i])) * wOpt / (DwL(A, i, wOpt)); + firstAppr[j][i];
-  for (int j = 0,i = 0; i < 2 * n - 1; i++) {
-      if (i < n) {
-          ++j;
-      } else {
-          --j;
-      }
-      mykernel<<<1, j>>>(d_rs, wOpt, d_fa, d_diff, N * N - 4 * N + 4, d_all, i, j, n);
-    //   cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-    //   cout<<"The fa is "<<endl;
-    //   outVector(fa, N * N - 4 * N + 4);
-    //   cin>>aber;
-  }
+
+  my_red_black_kernel<<<N - 2, N - 2>>>(d_rs, wOpt, d_fa, d_diff, N * N - 4 * N + 4, d_all, n, 1);
+  // cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    // cout<<"Halfstep"<<endl;
+    // outVector(fa, N * N - 4 * N + 4);
+  my_red_black_kernel<<<N - 2, N - 2>>>(d_rs, wOpt, d_fa, d_diff, N * N - 4 * N + 4, d_all, n, 0);
+
+  // for (int j = 0,i = 0; i < 2 * n - 1; i++) {
+  //     if (i < n) {
+  //         ++j;
+  //     } else {
+  //         --j;
+  //     }
+  //     mykernel<<<1, j>>>(d_rs, wOpt, d_fa, d_diff, N * N - 4 * N + 4, d_all, i, j, n);
+  //   //   cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+  //   //   cout<<"The fa is "<<endl;
+  //   //   outVector(fa, N * N - 4 * N + 4);
+  //   //   cin>>aber;
+  // }
                 // firstAppr[j][i] = (-B[j][i] + firstAppr[j + 1][i] + firstAppr[j - 1][i] + firstAppr[j][i - 1] + firstAppr[j][i + 1] - 4 * (1 - 1. / wOpt) * firstAppr[j][i]) * wOpt / 4.;
         //     }
         // }
@@ -419,11 +456,11 @@ int main(){
         //         changeAppr[j][i] = fabs(firstAppr[j][i] - changeAppr[j][i]);
         //     }
         // }
-        cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+        // cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
         cudaMemcpy(diff, d_diff, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-        cout<<"The fa is "<<endl;
-        outVector(fa, N * N - 4 * N + 4);
-        cout<<endl;
+        // cout<<"The fa is "<<endl;
+        // outVector(fa, N * N - 4 * N + 4);
+        // cout<<endl;
         // outVector(diff, N * N - 4 * N + 4);
         maxDiff = findMaxInVector(diff, N * N - 4 * N + 4);
         // outVector(changeAppr);
@@ -433,8 +470,13 @@ int main(){
     ++k;
     cout<<"Maxdiff is "<<maxDiff<<endl;
     // cin>>aber;
+    if(maxDiff > 1000) {
+        break;
+    }
 } while (maxDiff > eps);
 timeChecker = dsecnd() - timeChecker;
+cout<<"The iter is:"<<endl;
+cout<<k<<endl;
 firstApprSet(changeAppr);
 cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
 for (int j = 1; j < N - 1; j++) {

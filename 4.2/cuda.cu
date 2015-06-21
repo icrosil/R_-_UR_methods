@@ -266,7 +266,7 @@ void Shablon(vector<vector<double> > X, double * &res) {
  */
 
  #ifndef N
- #define N 25
+ #define N 50
 
  #endif
 

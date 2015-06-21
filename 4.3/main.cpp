@@ -344,12 +344,14 @@ int main(){
     ++k;
 } while (maxDiff > eps);
 timeChecker = dsecnd() - timeChecker;
+cout<<"The iter is:"<<endl;
+cout<<k<<endl;
 firstApprSet(changeAppr);
 //   /*
 //   * outing
 //   */
-  cout<<"The Matr Is:"<<endl;
-  outMatr(A);
+  // cout<<"The Matr Is:"<<endl;
+  // outMatr(A);
   cout<<"The Vector Is:"<<endl;
   outMatr(B);
   cout<<"The first approximation Is:"<<endl;
