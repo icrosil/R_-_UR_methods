@@ -273,7 +273,7 @@ void copyVectors (vector<vector<double> > in, vector<vector<double> > &out) {
  * CUDA functions
  */
  #ifndef N
- #define N 50
+ #define N 25
  #endif
 
  __device__ int blocks = N - 2;
