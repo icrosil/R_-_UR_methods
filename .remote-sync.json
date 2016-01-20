@@ -8,5 +8,5 @@
   "ignore": [
     ".git/**"
   ],
-  "uploadOnSave": true
+  "uploadOnSave": false
 }
