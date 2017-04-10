@@ -126,23 +126,16 @@ double findMinRealArr (alglib::real_1d_array const wr) {
     return min;
 }
 
-double nextTau (vector<double> Tau, double ro0, int n, vector<double> optTau) {
-    double tk = cos (( optTau[Tau.size() - 1]) * M_PI / (2 * n));
-    // return Tau[0] / (1 + ro0 * tk);
-    // if ((Tau[0] / (1 + ro0 * tk) - Tau[Tau.size() - 1]) > 1.) {
-        // counter--;
-        // return Tau[counter];
-    // } else {
-        // counter = Tau.size();
-        return Tau[0] / (1 + ro0 * tk);
-    // }
-    // return 2 / (max + min + (max - min) * tk);
+void outReal2Array (alglib::real_2d_array wr, int size) {
+    for (int i = 0; i < size; ++i ){
+        for (int j = 0; j < size; ++j )
+            cout<<wr[i][j]<<" ";
+        cout<<endl;
+    }
 }
-int findMaxIter (double eps, double ksi, int N) {
-    // return ceil(log (2. / eps) / (2. * sqrt(ksi)));
-    return ceil(log (2. / eps) / (2. * sqrt(ksi)));
-    // return ceil(log (N / eps) * N);
-}
+
+
+
 void firstApprSet(vector<vector<double> >& B) {
     for (int i = 0; i < B.size(); i++) {
         B[i][0] = U(i / (double) (B.size() - 1), 0);
@@ -163,61 +156,97 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j){
     }
     return res;
 }
-void decToDuo(vector<double> &duo, int maxIter) {
-    // while (maxIter > 0) {
-    //     duo.push_back(maxIter % 2);
-    //     maxIter /= 2;
-    // }
-    vector<double> temp(0);
-    while (maxIter > 1) {
-        if (maxIter % 2 != 0) {
-                temp.push_back(1);
-                maxIter--;
-        } else {
-            temp.push_back(0);
-            maxIter /= 2;
+
+void realArr2dToVectorMatr (alglib::real_2d_array matrix, vector<vector<double> > &A) {
+    for (int i = 0; i < A.size(); ++i) {
+        for (int j = 0; j < A.size(); ++j) {
+            A[i][j] = matrix[i][j];
         }
-    }
-    for (int j = 0; j < temp.size(); j++) {
-        /* code */
-        duo.push_back(temp[temp.size() - j - 1]);
     }
 }
-void calculateOptTau(vector<double> &optTau, vector<double> duo) {
-    vector<double> temp(0);
-    double coord = 0;
-    double number = 1;
-    // duo[0] = 0;
-    // duo.erase(duo.begin() + duo.size() - 1);
-    for (int i = 0; i < duo.size(); i++) {
-        temp.clear();
-        coord = 0;
-        if (duo[i] == 0) {
-            number *= 2;
-            if ((i + 1 == duo.size()) || (duo[i + 1] == 0)) {
-                /*normal*/
-                coord = 0;
-            } else {
-                /*4m+2*/
-                coord = 2;
-            }
-            for (int j = 0; j < optTau.size(); j++) {
-                temp.push_back(optTau[j]);
-                temp.push_back(4 * optTau.size() + coord - optTau[j]);
-            }
-        } else {
-            number += 1;
-            /*+1*/
-            for (int j = 0; j < optTau.size(); j++) {
-                temp.push_back(optTau[j]);
-            }
-            temp.push_back(number);
+
+/*
+*works only for good square matricies
+*/
+void mulMatricies (vector<vector<double> > A, vector<vector<double> > B, vector<vector<double> > &temp) {
+    for (int i = 0; i < A.size(); ++i)
+        for (int j = 0; j < A.size(); ++j)
+            for (int k = 0; k < A.size(); ++k)
+                temp[i][j] += A[k][j] * B[i][k];
+}
+
+/*
+*можно найти оптимальный w как 2 - O(h) но это же слишком просто, по этому пишем эту фиготень
+*совсем не факт что это штука с детерминантом оптимальная но другого у меня нет.
+*/
+double wOptSet ( vector<vector<double> > A, double spectr, double oh) {
+    vector<vector<double> > D(A.size(), vector<double>(A.size(), 0));
+    vector<vector<double> > LR(A.size(), vector<double>(A.size(), 0));
+    vector<vector<double> > det(A.size(), vector<double>(A.size(), 0));
+    double rDet;
+    double wOpt;
+    alglib::ae_int_t info;
+    alglib::matinvreport rep;
+    alglib::real_2d_array matrixD;
+    alglib::real_2d_array matrixLR;
+    alglib::real_2d_array matrixDet;
+    for (int i = 0; i < A.size(); ++i ){
+        D[i][i] = A[i][i];
+    }
+    for (int i = 0; i < A.size(); ++i )
+        for (int j = 0; j < A.size(); ++j){
+            if (i != j) LR[i][j] = A[i][j];
         }
-        optTau.clear();
-        for (int j = 0; j < temp.size(); j++) {
-            optTau.push_back(temp[j]);
+    matrixD.setcontent(A.size(), A.size(), arrToRealArr(D));
+    matrixLR.setcontent(A.size(), A.size(), arrToRealArr(LR));
+    alglib::rmatrixinverse(matrixD, A.size(), info, rep);
+    realArr2dToVectorMatr(matrixD, D);
+    mulMatricies(D, LR, det);
+    matrixDet.setcontent(A.size(), A.size(), arrToRealArr(det));
+    // outMatr(det);
+    // outReal2Array(matrixDet, det.size());
+    rDet = alglib::rmatrixdet(matrixDet);
+    wOpt = 2 / (1 + sqrt(1 - spectr * spectr ));//* rDet));
+    if (wOpt < 1 && wOpt > 0) {
+        wOpt +=1;
+    } else if (wOpt < 2 && wOpt > 1){
+        wOpt = wOpt;
+    } else {
+        wOpt = 2 - oh;
+    }
+    // cout<<"The determ is "<<rDet<<endl;
+    // cout<<"The wopt is "<<wOpt<<endl;
+    //checking inversed
+    // cout<<"The D inverse Is:"<<endl;
+    // to find determenant use RMatrixDet
+
+    return wOpt;
+}
+
+double DwL (vector<vector<double> > A, int k, double w) {
+    double sum = 0;
+    for (int i = 0; i < k; ++i) {
+        sum += A[k][i] * w;
+    }
+    sum += A[k][k];
+    return sum;
+}
+
+double findMaxInVector ( vector<vector<double> > a) {
+    double max = a[1][1];
+    for (int i = 2; i < a.size() - 1; i++) {
+        for (int j = 2; j < a.size() - 1; j++) {
+            if (a[i][j] > max) max = a[i][j];
         }
-        outVector(optTau);
+    }
+    return max;
+}
+
+void copyVectors (vector<vector<double> > in, vector<vector<double> > &out) {
+    for (int i = 0; i < in.size(); i++) {
+        for (int j = 0; j < in[i].size(); j++) {
+            out[i][j] = in[i][j];
+        }
     }
 }
 
@@ -227,8 +256,16 @@ void calculateOptTau(vector<double> &optTau, vector<double> duo) {
 
 int main(){
     double t0 = dsecnd();
-
-  // int N = 30;
+  /*
+  *TODO: add elliptic diffequations
+  *TODO: add CUDA improvements
+  *эта часть задачи решает по матрице и правой части итерационный процесс верхних релаксаций
+  */
+  /*
+  * N means matr size
+  * A means main Matr
+  * B means right vector
+  */
 
   /*
   * Getting inputs A and B
@@ -236,14 +273,17 @@ int main(){
   vector<vector<double> > A((N - 2) * (N - 2), vector<double>((N - 2) * (N - 2), 0));
   readMatr(A);
   vector<vector<double> > B(N, vector<double>(N, 0));
-  vector<double> Tau(1, 0);
   vector<vector<double> > firstAppr(N, vector<double>(N, 0));
-  vector<vector<double> > tempAppr(N, vector<double>(N, 0));
+  vector<vector<double> > changeAppr(N, vector<double>(N, 0));
   firstApprSet(firstAppr);
   readVector(B);
+  double eps = 0.0001;
+  double spectr;
+  double wOpt;
+  double maxDiff = 1;
   alglib::real_2d_array matrix;
   matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
-  double eps = 0.00001;
+
   /*
   *creating another parts
   *wr - целые части собственных чисел
@@ -258,84 +298,78 @@ int main(){
   /*
   * расчет собственных чисел
   */
-  alglib::rmatrixevd(matrix, (N - 2) * (N - 2), 0, wr, wi, vl, vr);
-  double AlphaMax = findMaxRealArr(wr);
-  double AlphaMin = findMinRealArr(wr);
-  Tau[0] = 2. / (AlphaMax + AlphaMin);
-  double ksi = AlphaMin / AlphaMax;
-  double ro0 = (1. - ksi) / (1. + ksi);
-  double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
-  int maxIter = findMaxIter(eps, ksi, N);
-  // cout<<"maxIter - "<<maxIter<<endl;
-  // return 0;
-  maxIter = maxIter * 2;
-  vector<double> optTau(1, 1);
-  vector<double> duo(0);
-  decToDuo(duo, maxIter);
-  calculateOptTau(optTau, duo);
-  for (int i = 1; i < maxIter + 1; ++i) Tau.push_back(nextTau(Tau, ro0, maxIter, optTau));
+  alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
+
+  /*
+  *допустим что спектральынй радиус матрицы это максимальное собственное число (которые все норм должны быть) без модуля, так как все должны быть положительны
+  */
+  spectr = findMaxRealArr(wr);
+  wOpt = wOptSet(A, spectr, 1. / N);
+
   /*
   *main loop here
+  *если я правильно понял то новые вычисления нужно тут же использовать, исхожу из этого мнения
   */
- double timechecker = dsecnd();
-  firstApprSet(tempAppr);
-  for (int i = 1; i < maxIter + 1; ++i) {
-      cout<<"The "<<i<<" iter"<<endl;
-      cout<<"The temp is"<<endl;
-      for (int j = 1; j < N - 1; ++j) {
-          for (int k = 1; k < N - 1; k++) {
-              cout<< (firstAppr[j][k + 1] + firstAppr[j][k - 1] +
-firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k]) <<" ";
-              tempAppr[j][k] = (-B[j][k] + (firstAppr[j][k + 1] + firstAppr[j][k - 1] +
-firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])) * Tau[i] + firstAppr[j][k];
-          }
-      }
-      cout<<endl;
-      firstAppr = tempAppr;
-      outMatr(firstAppr);
-      cout<<endl;
-  }
-  double tMain = dsecnd() - timechecker;
-  // for (int i = 1; i < firstAppr.size() - 1; i++) {
-  //     for (int j = 1; j < firstAppr.size() - 1; j++) {
-  //         firstAppr[i][j] *= N;//((firstAppr.size() - 1) * (firstAppr.size() - 1));
-  //     }
-  // }
-  /*
-  * outing
-  */
-  firstApprSet(tempAppr);
-  cout<< "The N is : " << N << endl;
-  cout<<"The A(shorted) Is:"<<endl;
-  outMatr(A);
-  cout<<"The B(shorted) Is:"<<endl;
+  int k = 0;
+  char aber;
+  double timeChecker = dsecnd();
+  do {
+        cout<<"The "<<k<<" iter"<<endl;
+        copyVectors(firstAppr, changeAppr);
+        // cout<<"change: "<<endl;
+        // outMatr(changeAppr);
+        // cout<<"fa: "<<endl;
+        // outMatr(firstAppr);
+        // cin>>aber;
+        // for (int i = 0; i < A.size(); i++) {
+        //     firstAppr[i] = firstAppr[i] + (B[i] - aMulX(A, firstAppr, i)) * wOpt / (DwL(A, i, wOpt));
+        // }
+        for (int j = 1; j < N - 1; ++j) {
+            for (int i = 1; i < N - 1; i++) {
+  //               firstAppr[j][i] = (B[j][i] - (firstAppr[j][i + 1] + firstAppr[j][i - 1] +
+  // firstAppr[j + 1][i] + firstAppr[j - 1][i] - 4 * firstAppr[j][i])) * wOpt / (DwL(A, i, wOpt)); + firstAppr[j][i];
+                firstAppr[j][i] = (-B[j][i] + firstAppr[j + 1][i] + firstAppr[j - 1][i] + firstAppr[j][i - 1] + firstAppr[j][i + 1] - 4 * (1 - 1. / wOpt) * firstAppr[j][i]) * wOpt / 4.;
+            }
+        }
+        for (int j = 1; j < N - 1; ++j) {
+            for (int i = 1; i < N - 1; i++) {
+                changeAppr[j][i] = fabs(firstAppr[j][i] - changeAppr[j][i]);
+            }
+        }
+        outMatr(firstAppr);
+        // outVector(changeAppr);
+        // cout<<findMaxInVector(changeAppr)<<endl;
+        maxDiff = findMaxInVector(changeAppr);
+        // system("pause");
+    ++k;
+} while (maxDiff > eps);
+timeChecker = dsecnd() - timeChecker;
+cout<<"The iter is:"<<endl;
+cout<<k<<endl;
+firstApprSet(changeAppr);
+//   /*
+//   * outing
+//   */
+  // cout<<"The Matr Is:"<<endl;
+  // outMatr(A);
+  cout<<"The Vector Is:"<<endl;
   outMatr(B);
-  cout<<"The duo(shorted) Is:"<<endl;
-  outVector(duo);
-  cout<<"The opt(shorted) Is:"<<endl;
-  outVector(optTau);
-  cout<<"The first appr Is:"<<endl;
-  outMatr(tempAppr);
-  cout<<"The last approximation Is:"<<endl;
+  cout<<"The first approximation Is:"<<endl;
+  outMatr(changeAppr);
+  cout<<"The epsilon Is:"<<endl;
+  cout<<eps<<endl;
+  cout<<"The Vector of ownValues:"<<endl;
+  outReal1Array(wr);
+  cout<<"The Spectr Is:"<<endl;
+  cout<<spectr<<endl;
+  cout<<"The wOpt Is:"<<endl;
+  cout<<wOpt<<endl;
+  cout<<"The result Is:"<<endl;
   outMatr(firstAppr);
-  cout<<"The Max alpha Is:"<<endl;
-  cout<<AlphaMax<<endl;
-  cout<<"The Min alpha Is:"<<endl;
-  cout<<AlphaMin<<endl;
-  cout<<"The Tau is:"<<endl;
-  outVector(Tau);
-  cout<<"The ksi is:"<<endl;
-  cout<<ksi<<endl;
-  cout<<"The ro0 is:"<<endl;
-  cout<<ro0<<endl;
-  cout<<"The ro1 is:"<<endl;
-  cout<<ro1<<endl;
-  cout<<"The maxIter is:"<<endl;
-  cout<<maxIter<<endl;
   cout<<"The time is:"<<endl;
   cout<< dsecnd() - t0 <<" s"<<endl;
   cout<<"The time of main is:"<<endl;
-  cout<< tMain <<" s"<<endl;
+  cout<< timeChecker <<" s"<<endl;
   cout<<"The 1 1 is:"<<endl;
   cout<< firstAppr[1][1]<<endl;
   cout<<"The 2 2 is:"<<endl;
