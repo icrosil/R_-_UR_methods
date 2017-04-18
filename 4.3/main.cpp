@@ -98,7 +98,7 @@ void readVector (vector<vector<double> >& B){
 }
 double* arrToRealArr (vector<vector<double> >const &A){
     double * local;
-    local = new double[A.size() * A.size()];
+    local = new double[A.size() *ent A.size()];
     for (int i = 0; i < A.size(); ++i){
         for (int j = 0; j < A[i].size();++j){
             local[i * A.size() + j] = A[i][j];
