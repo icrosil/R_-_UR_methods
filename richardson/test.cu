@@ -1,3 +1,5 @@
+// Copyright 2015-2017 Illia Olenchenko
+
 #include <stdio.h>
 
 const int N = 16;
@@ -19,17 +21,17 @@ int main() {
 
   printf("%s", a);
 
-  cudaMalloc( (void**)&ad, csize );
-  cudaMalloc( (void**)&bd, isize );
-  cudaMemcpy( ad, a, csize, cudaMemcpyHostToDevice );
-  cudaMemcpy( bd, b, isize, cudaMemcpyHostToDevice );
+  cudaMalloc((void**)&ad, csize);
+  cudaMalloc((void**)&bd, isize);
+  cudaMemcpy(ad, a, csize, cudaMemcpyHostToDevice);
+  cudaMemcpy(bd, b, isize, cudaMemcpyHostToDevice);
 
-  dim3 dimBlock( blocksize, 1 );
-  dim3 dimGrid( 1, 1 );
+  dim3 dimBlock(blocksize, 1);
+  dim3 dimGrid(1, 1);
   hello<<<dimGrid, dimBlock>>>(ad, bd);
-  cudaMemcpy( a, ad, csize, cudaMemcpyDeviceToHost );
-  cudaFree( ad );
-  cudaFree( bd );
+  cudaMemcpy(a, ad, csize, cudaMemcpyDeviceToHost);
+  cudaFree(ad);
+  cudaFree(bd);
 
   printf("%s\n", a);
   return EXIT_SUCCESS;

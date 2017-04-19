@@ -17,3 +17,10 @@
 -lcusparse -lcudart -lcuda -lcublas -I /opt/intel/composer_xe_2013/mkl/include/ -L
 /opt/intel/composer_xe_2013/mkl/lib/intel64/ -L /opt/intel/lib/intel64 -lmkl_gnu_thread -lmkl_core -lpthread -lm
 -lmkl_intel_lp64 -lgomp -o 8908`
+
+### Compile test.cu
+
+`nvcci test.cu -I /apps/Installed/nvidia/cuda4.2/cuda/include -L /apps/Installed/nvidia/cuda4.2/cuda/lib64
+-lcusparse -lcudart -lcuda -lcublas -I /opt/intel/composer_xe_2013/mkl/include/ -L
+/opt/intel/composer_xe_2013/mkl/lib/intel64/ -L /opt/intel/lib/intel64 -lmkl_gnu_thread -lmkl_core -lpthread -lm
+-lmkl_intel_lp64 -lgomp -o 8908`
