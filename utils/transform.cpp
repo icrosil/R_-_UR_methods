@@ -5,7 +5,10 @@
 #include "vector"
 #include <string>
 
+#include "../lib/alglib/src/ap.h"
+
 using namespace std;
+using namespace alglib;
 
 // transformer of matr to flat array
 double* arrToRealArr(vector<vector<double> >const &A) {
@@ -17,4 +20,13 @@ double* arrToRealArr(vector<vector<double> >const &A) {
     }
   }
   return local;
+}
+
+int realArr2dToVectorMatr(alglib::real_2d_array matrix, vector<vector<double> > &A) {
+  for (int i = 0; i < A.size(); ++i) {
+    for (int j = 0; j < A.size(); ++j) {
+      A[i][j] = matrix[i][j];
+    }
+  }
+  return 0;
 }

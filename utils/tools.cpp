@@ -33,6 +33,20 @@ double* aMulXVector(vector<vector<double> > A, vector<double> X) {
   return res;
 }
 
+/*
+ * works only for good square matricies
+ */
+int mulMatricies(vector<vector<double> > A, vector<vector<double> > B, vector<vector<double> > &temp) {
+  for (int i = 0; i < A.size(); ++i) {
+    for (int j = 0; j < A.size(); ++j) {
+      for (int k = 0; k < A.size(); ++k) {
+        temp[i][j] += A[k][j] * B[i][k];
+      }
+    }
+  }
+  return 0;
+}
+
 // simple max finder
 double findMaxRealArr(alglib::real_1d_array const wr) {
   double max = fabs(wr[0]);
@@ -49,4 +63,23 @@ double findMinRealArr(alglib::real_1d_array const wr) {
     if (fabs(wr[i]) < min) min = fabs(wr[i]);
   }
   return min;
+}
+
+double findMaxInVector(vector<vector<double> > a) {
+  double max = a[1][1];
+  for (int i = 2; i < a.size() - 1; i++) {
+    for (int j = 2; j < a.size() - 1; j++) {
+      if (a[i][j] > max) max = a[i][j];
+    }
+  }
+  return max;
+}
+
+int copyVectors(vector<vector<double> > in, vector<vector<double> > &out) {
+  for (int i = 0; i < in.size(); i++) {
+    for (int j = 0; j < in[i].size(); j++) {
+      out[i][j] = in[i][j];
+    }
+  }
+  return 0;
 }

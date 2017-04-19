@@ -48,3 +48,13 @@ void outReal1Array(alglib::real_1d_array wr) {
   }
   cout << endl;
 }
+
+int outReal2Array(alglib::real_2d_array wr, int size) {
+  for (int i = 0; i < size; ++i) {
+    for (int j = 0; j < size; ++j) {
+      cout << wr[i][j] << " ";
+    }
+    cout << endl;
+  }
+  return 0;
+}

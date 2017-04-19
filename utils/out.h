@@ -14,5 +14,6 @@ void outVector(vector<double> B);
 void outVector(double* B, int N);
 void outMatr(vector<vector<double> > A);
 void outReal1Array(alglib::real_1d_array wr);
+int outReal2Array(alglib::real_2d_array wr, int size);
 
 #endif /* OUT_H */
