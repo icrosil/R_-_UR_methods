@@ -1,7 +1,5 @@
 // Copyright 2015-2017 Illia Olenchenko
 
-// compile g++ -o filename file.cpp and run filename
-
 #include <math.h>
 #include <iostream>
 #include "vector"

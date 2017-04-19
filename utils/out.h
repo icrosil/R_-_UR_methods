@@ -11,6 +11,7 @@ using namespace alglib;
 #define OUT_H
 
 void outVector(vector<double> B);
+void outVector(double* B, int N);
 void outMatr(vector<vector<double> > A);
 void outReal1Array(alglib::real_1d_array wr);
 

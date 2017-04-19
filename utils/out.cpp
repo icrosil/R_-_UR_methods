@@ -19,6 +19,18 @@ void outVector(vector<double> B) {
   cout << endl;
 }
 
+// out of Vector with margin of N
+void outVector(double* B, int N) {
+  int additions = 1;
+  cout << B[0] << " ";
+  for (int i = additions; i < N - 1; i += additions) {
+    cout << B[i] << " ";
+  }
+  cout << B[N - 1] << " ";
+  cout << endl;
+  cout << "out outVector" << endl;
+}
+
 // simple out matr to console (you can increase additions)
 void outMatr(vector<vector<double> > A) {
   int additions = 1;

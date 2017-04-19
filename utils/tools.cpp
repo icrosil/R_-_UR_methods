@@ -19,6 +19,20 @@ double aMulX(vector<vector<double> > A, vector<double> X, int j) {
   return res;
 }
 
+// util A mult X Vector
+double* aMulXVector(vector<vector<double> > A, vector<double> X) {
+  double *res = new double[X.size()];
+  for (int j = 0; j < X.size(); j++) {
+    res[j] = 0;
+  }
+  for (int j = 0; j < A.size(); ++j) {
+    for (int i = 0; i < A.size(); ++i) {
+      res[j] += A[j][i] * X[i];
+    }
+  }
+  return res;
+}
+
 // simple max finder
 double findMaxRealArr(alglib::real_1d_array const wr) {
   double max = fabs(wr[0]);

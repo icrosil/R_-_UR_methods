@@ -1,7 +1,5 @@
 // Copyright 2015-2017 Illia Olenchenko
 
-// compile g++ -o filename file.cpp and run filename
-
 #include <math.h>
 #include <iostream>
 #include "vector"
@@ -18,19 +16,12 @@
 #include "../lib/alglib/src/fasttransforms.h"
 #include "../lib/alglib/src/integration.h"
 #include "../lib/alglib/src/interpolation.h"
-#include "../lib/alglib/src/ap.cpp"
-#include "../lib/alglib/src/linalg.cpp"
-#include "../lib/alglib/src/alglibmisc.cpp"
-#include "../lib/alglib/src/alglibinternal.cpp"
-#include "../lib/alglib/src/statistics.cpp"
-#include "../lib/alglib/src/dataanalysis.cpp"
-#include "../lib/alglib/src/specialfunctions.cpp"
-#include "../lib/alglib/src/solvers.cpp"
-#include "../lib/alglib/src/optimization.cpp"
-#include "../lib/alglib/src/diffequations.cpp"
-#include "../lib/alglib/src/fasttransforms.cpp"
-#include "../lib/alglib/src/integration.cpp"
-#include "../lib/alglib/src/interpolation.cpp"
+#include "../utils/out.h"
+#include "../utils/functions.h"
+#include "../utils/init.h"
+#include "../utils/transform.h"
+#include "../utils/richardson.h"
+#include "../utils/tools.h"
 #include <string>
 #include <ctime>
 #include <mkl.h>
@@ -40,243 +31,13 @@ using namespace std;
 using namespace alglib;
 using namespace alglib_impl;
 
-// simple out of Vector
-void outVector(vector<double> B) {
-  int additions = 1;
-  cout << B[0] << " ";
-  for (int i = additions; i < B.size() - 1; i += additions) {
-    cout << B[i] << " ";
-  }
-  cout << B[B.size() - 1] << " ";
-  cout << endl;
-}
-
-// out of Vector with margin of N
-void outVector(double* B, int N) {
-  int additions = 1;
-  cout << B[0] << " ";
-  for (int i = additions; i < N - 1; i += additions) {
-    cout << B[i] << " ";
-  }
-  cout << B[N - 1] << " ";
-  cout << endl;
-  cout << "out outVector" << endl;
-}
-
-// simple out of Matr
-void outMatr(vector<vector<double> > A) {
-  int additions = 1;
-  outVector(A[0]);
-  for (int i = additions; i < A.size() - 1; i += additions) {
-    outVector(A[i]);
-  }
-  outVector(A[A.size() - 1]);
-}
-
-// F calculation
-double F(double x, double y, double N) {
-  return (2 * sin(y) - x * x * sin(y)) / N;
-}
-
-// U calculation
-double U double x, double y) {
-  return x * x * sin(y) + 1;
-}
-
-// A matr init
-void readMatr(vector<vector<double> > &A) {
-  int sizer = static_cast<int>(sqrt(A.size()));
-  A[0][0] = -4;
-  A[A.size() - 1][A.size() - 1] = -4;
-  A[0][1] = 1;
-  A[A.size() - 1][A.size() - 2] = 1;
-  for (int i = 1; i < A.size() - 1; i++) {
-    A[i][i] = -4;
-    if (!((i % sizer) == 0)) {
-      A[i][i - 1] = 1;
-    }
-    if (!(((i - 1) % sizer) == 0)) {
-      A[i][i + 1] = 1;
-    }
-  }
-  for (int i = 0; i < A.size() - sizer; i++) {
-    A[i][i + sizer] = 1;
-    A[i + sizer][i] = 1;
-  }
-}
-
-// B vector init
-void readVector(vector<vector<double> >& B) {
-  for (int i = 0; i < B.size(); i++) {
-    B[i][0] = U(i / (double) (B.size() - 1), 0);
-    B[0][i] = U(0, i / (double) (B.size() - 1));
-    B[B.size() - 1][i] = U(1, i / (double) (B.size() - 1));
-    B[i][B.size() - 1] = U(i / (double) (B.size() - 1), 1);
-  }
-  for (int i = 1; i < B.size() - 1; ++i) {
-    for (int j = 1; j < B.size() - 1; ++j) {
-      B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1), (B.size() - 1) * (B.size() - 1));
-    }
-  }
-}
-
-// Flat array conversion
-double* arrToRealArr(vector<vector<double> >const &A) {
-  double * local;
-  local = new double[A.size() * A.size()];
-  for (int i = 0; i < A.size(); ++i) {
-    for (int j = 0; j < A[i].size(); ++j) {
-      local[i * A.size() + j] = A[i][j];
-    }
-  }
-  return local;
-}
-
-// simple out of alglib array
-void outReal1Array(alglib::real_1d_array wr) {
-  for (int i = 0; i < wr.length(); ++i ) {
-    cout << wr[i] << " ";
-  }
-  cout << endl;
-}
-
-// find maximum from alglib arr
-double findMaxRealArr(alglib::real_1d_array const wr) {
-  double max = fabs(wr[0]);
-  for (int i = 1; i < wr.length(); ++i) {
-    if (fabs(wr[i]) > max) max = fabs(wr[i]);
-  }
-  return max;
-}
-
-// find minimum from alglib arr
-double findMinRealArr(alglib::real_1d_array const wr) {
-  double min = fabs(wr[0]);
-  for (int i = 1; i < wr.length(); ++i) {
-    if (fabs(wr[i]) < min) min = fabs(wr[i]);
-  }
-  return min;
-}
-
-// next Tau calculation
-double nextTau(vector<double> Tau, double ro0, int n, vector<double> optTau) {
-  double tk = cos((optTau[Tau.size() - 1]) * M_PI / (2 * n));
-  return Tau[0] / (1 + ro0 * tk);
-}
-
-// max iter calculation
-int findMaxIter(double eps, double ksi) {
-  return ceil(log (2. / eps) / (2. * sqrt(ksi)));
-}
-
-// first approximation set
-void firstApprSet(vector<vector<double> >& B) {
-  for (int i = 0; i < B.size(); i++) {
-    B[i][0] = U(i / (double) (B.size() - 1), 0);
-    B[0][i] = U(0, i / (double) (B.size() - 1));
-    B[B.size() - 1][i] = U(1, i / (double) (B.size() - 1));
-    B[i][B.size() - 1] = U(i / (double) (B.size() - 1), 1);
-  }
-  for (int i = 1; i < B.size() - 1; ++i) {
-    for (int j = 1; j < B.size() - 1; ++j) {
-      B[i][j] = F(i / (double) (B.size() - 1), j / (double) (B.size() - 1), (B.size() - 1) * (B.size() - 1)) / 2.;
-    }
-  }
-}
-
-// util A multiplies X
-double aMulX(vector<vector<double> > A, vector<double> X, int j) {
-  double res = 0;
-  for (int i = 0; i < A.size(); ++i) {
-    res += A[j][i] * X[i];
-  }
-  return res;
-}
-
-// ?
-void decToDuo(vector<double> &duo, int maxIter) {
-  vector<double> temp(0);
-  while (maxIter > 1) {
-    if (maxIter % 2 != 0) {
-      temp.push_back(1);
-      maxIter--;
-    } else {
-      temp.push_back(0);
-      maxIter /= 2;
-    }
-  }
-  for (int j = 0; j < temp.size(); j++) {
-    duo.push_back(temp[temp.size() - j - 1]);
-  }
-}
-
-// opt tau calculation
-void calculateOptTau(vector<double> &optTau, vector<double> duo) {
-  vector<double> temp(0);
-  double coord = 0;
-  double number = 1;
-  for (int i = 0; i < duo.size(); i++) {
-    temp.clear();
-    coord = 0;
-    if (duo[i] == 0) {
-      number *= 2;
-      if ((i + 1 == duo.size()) || (duo[i + 1] == 0)) {
-        /*normal*/
-        coord = 0;
-      } else {
-        /*4m+2*/
-        coord = 2;
-      }
-      for (int j = 0; j < optTau.size(); j++) {
-        temp.push_back(optTau[j]);
-        temp.push_back(4 * optTau.size() + coord - optTau[j]);
-      }
-    } else {
-      number += 1;
-      /*+1*/
-      for (int j = 0; j < optTau.size(); j++) {
-        temp.push_back(optTau[j]);
-      }
-      temp.push_back(number);
-    }
-    optTau.clear();
-    for (int j = 0; j < temp.size(); j++) {
-      optTau.push_back(temp[j]);
-    }
-    outVector(optTau);
-  }
-}
-
-// util A mult X Vector
-double* aMulXVector(vector<vector<double> > A, vector<double> X) {
-  double *res = new double[X.size()];
-  for (int j = 0; j < X.size(); j++) {
-    res[j] = 0;
-  }
-  for (int j = 0; j < A.size(); ++j) {
-    for (int i = 0; i < A.size(); ++i) {
-      res[j] += A[j][i] * X[i];
-    }
-  }
-  return res;
-}
-
-// Differentiate net
-void Shablon(vector<vector<double> > X, double * &res) {
-  for (int j = 1; j < X.size() - 1; ++j) {
-    for (int i = 1; i < X.size() - 1; ++i) {
-      res[(i - 1) * (X.size() - 2) + (j - 1) ] = X[i + 1][j] + X[i - 1][j] + X[i][j + 1] + X[i][j - 1] - 4. * X[i][j];
-    }
-  }
-}
-
 /**
  * CUDA functions
  */
 
- #ifndef N
- #define N 25
- #endif
+#ifndef N
+#define N 5
+#endif
 
 __device__ int barrier = N - 2;
 __device__ int blocks = N - 2;
@@ -291,7 +52,7 @@ __global__ void myshab(double *temp, int n, double *all) {
 
 // B, Shablon, Tau, firstAppr, iteration number
 __global__ void mykernel(double *a, double *b, double *c, double *d, int n, int i, double *all) {
-    // TODO syncthreads will work, so pass needed elements, let them for and sync on every iteration
+    // TODO(me) syncthreads will work, so pass needed elements, let them for and sync on every iteration
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
     if (index < n) {
@@ -303,21 +64,21 @@ __global__ void mykernel(double *a, double *b, double *c, double *d, int n, int 
     /* Do whatever it is that this block does. */
 
 
-   //  /* Make sure all threads in this block are actually here. */
-   //  __syncthreads();
-   //  /* Once we're done, decrease the value of the barrier. */
-   // if ( threadIdx.x == 0 )
-   //     atomicSub( &barrier , 1 );
-   //
-   // /* Now wait for the barrier to be zero. */
-   // if ( threadIdx.x == 0 )
-   //     while ( atomicCAS( &barrier , 0 , 0 ) != 0 );
-   //
-   // /* Make sure everybody has waited for the barrier. */
-   // __syncthreads();
-   //
-   // /* Carry on with whatever else you wanted to do. */
-   // barrier = N - 2;
+  //  /* Make sure all threads in this block are actually here. */
+  //  __syncthreads();
+  //  /* Once we're done, decrease the value of the barrier. */
+  // if ( threadIdx.x == 0 )
+  //     atomicSub( &barrier , 1 );
+  //
+  // /* Now wait for the barrier to be zero. */
+  // if ( threadIdx.x == 0 )
+  //     while ( atomicCAS( &barrier , 0 , 0 ) != 0 );
+  //
+  // /* Make sure everybody has waited for the barrier. */
+  // __syncthreads();
+  //
+  // /* Carry on with whatever else you wanted to do. */
+  // barrier = N - 2;
 }
 
 
@@ -380,11 +141,11 @@ int main() {
   /*
   *main loop here
   */
-  double *temp = new double [N * N - 4 * N + 4];
-  double *all = new double [N * N];
-  double *b = new double [N * N - 4 * N + 4];
-  double *fa = new double [N * N - 4 * N + 4];
-  double *taum = new double [maxIter + 1];
+  double *temp = new double[N * N - 4 * N + 4];
+  double *all = new double[N * N];
+  double *b = new double[N * N - 4 * N + 4];
+  double *fa = new double[N * N - 4 * N + 4];
+  double *taum = new double[maxIter + 1];
   double *d_a, *d_b, *d_c, *d_d, *d_g;
   int size = sizeof(double);
 

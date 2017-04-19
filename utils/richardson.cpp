@@ -16,7 +16,7 @@ double nextTau(vector<double> Tau, double ro0, int n, vector<double> optTau) {
 }
 
 // maxIter claculation
-int findMaxIter(double eps, double ksi, int N) {
+int findMaxIter(double eps, double ksi) {
   return (int)ceil(log(2. / eps) / (2. * sqrt(ksi)));
 }
 
