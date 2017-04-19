@@ -75,6 +75,14 @@ double findMaxInVector(vector<vector<double> > a) {
   return max;
 }
 
+double findMaxInVector(double *a, int size) {
+  double max = fabs(a[0]);
+  for (int i = 1; i < size; i++) {
+    if (fabs(a[i]) > max) max = fabs(a[i]);
+  }
+  return max;
+}
+
 int copyVectors(vector<vector<double> > in, vector<vector<double> > &out) {
   for (int i = 0; i < in.size(); i++) {
     for (int j = 0; j < in[i].size(); j++) {

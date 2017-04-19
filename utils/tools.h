@@ -16,6 +16,7 @@ int mulMatricies(vector<vector<double> > A, vector<vector<double> > B, vector<ve
 double findMaxRealArr(alglib::real_1d_array const wr);
 double findMinRealArr(alglib::real_1d_array const wr);
 double findMaxInVector(vector<vector<double> > a);
+double findMaxInVector(double *a, int size);
 int copyVectors(vector<vector<double> > in, vector<vector<double> > &out);
 
 
