@@ -1,9 +1,11 @@
+// Copyright 2015-2017 Illia Olenchenko
+
 #include <stdio.h>
 #include <iostream>
 
 using namespace std;
 
-__global__ void mykernel (void) {}
+__global__ void mykernel(void) {}
 
 int main(void) {
   mykernel<<<1, 1>>>();
