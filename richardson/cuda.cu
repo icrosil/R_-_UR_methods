@@ -36,7 +36,7 @@ using namespace alglib_impl;
  */
 
 #ifndef N
-#define N 5
+#define N 25
 #endif
 
 __device__ int barrier = N - 2;

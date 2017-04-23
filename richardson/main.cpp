@@ -74,7 +74,7 @@ int main() {
   double ksi = AlphaMin / AlphaMax;
   double ro0 = (1. - ksi) / (1. + ksi);
   double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
-  int maxIter = findMaxIter(eps, ksi, N);
+  int maxIter = findMaxIter(eps, ksi);
   maxIter = maxIter * 2;
   vector<double> optTau(1, 1);
   vector<double> duo(0);
@@ -126,7 +126,7 @@ int main() {
   cout << "The Max alpha Is:" << endl;
   cout << AlphaMax << endl;
   cout << "The Min alpha Is:" << endl;
-  cout <<AlphaMin << endl;
+  cout << AlphaMin << endl;
   cout << "The Tau is:" << endl;
   outVector(Tau);
   cout << "The ksi is:" << endl;
@@ -138,9 +138,9 @@ int main() {
   cout << "The maxIter is:" << endl;
   cout << maxIter << endl;
   cout << "The time is:" << endl;
-  cout <<  dsecnd() - t0 <<" s" << endl;
+  cout <<  dsecnd() - t0 << " s" << endl;
   cout << "The time of main is:" << endl;
-  cout <<  tMain <<" s" << endl;
+  cout <<  tMain << " s" << endl;
   cout << "The 1 1 is:" << endl;
   cout <<  firstAppr[1][1] << endl;
   cout << "The 2 2 is:" << endl;
