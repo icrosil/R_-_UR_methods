@@ -32,7 +32,7 @@ using namespace alglib_impl;
 
 // few definations
 #ifndef N
-#define N 5
+#define N 40
 #endif
 
 int main() {
@@ -84,26 +84,27 @@ int main() {
   /*
   *main loop here
   */
-  double timechecker = dsecnd();
   firstApprSet(tempAppr);
+  double timechecker = dsecnd();
   for (int i = 1; i < maxIter + 1; ++i) {
-    cout << "The " << i << " iter" <<endl;
-    cout << "The temp is" << endl;
+    // cout << "The " << i << " iter" <<endl;
+    // cout << "The temp is" << endl;
     for (int j = 1; j < N - 1; ++j) {
       for (int k = 1; k < N - 1; k++) {
-        cout << (
-          firstAppr[j][k + 1] + firstAppr[j][k - 1] + firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k])
-        << " ";
+        // cout << (
+        //   firstAppr[j][k + 1] + firstAppr[j][k - 1] + firstAppr[j + 1][k] + firstAppr[j - 1][k] -
+        //   4 * firstAppr[j][k])
+        // << " ";
         tempAppr[j][k] = (
           -B[j][k] + (firstAppr[j][k + 1] +
             firstAppr[j][k - 1] + firstAppr[j + 1][k] + firstAppr[j - 1][k] - 4 * firstAppr[j][k]))
           * Tau[i] + firstAppr[j][k];
       }
     }
-    cout << endl;
+    // cout << endl;
     firstAppr = tempAppr;
-    outMatr(firstAppr);
-    cout << endl;
+    // outMatr(firstAppr);
+    // cout << endl;
   }
   double tMain = dsecnd() - timechecker;
   /*
@@ -111,43 +112,43 @@ int main() {
   */
   firstApprSet(tempAppr);
   cout <<  "The N is : " << N << endl;
-  cout << "The A(shorted) Is:" << endl;
-  outMatr(A);
-  cout << "The B(shorted) Is:" << endl;
-  outMatr(B);
-  cout << "The duo(shorted) Is:" << endl;
-  outVector(duo);
-  cout << "The opt(shorted) Is:" << endl;
-  outVector(optTau);
-  cout << "The first appr Is:" << endl;
-  outMatr(tempAppr);
-  cout << "The last approximation Is:" << endl;
-  outMatr(firstAppr);
-  cout << "The Max alpha Is:" << endl;
-  cout << AlphaMax << endl;
-  cout << "The Min alpha Is:" << endl;
-  cout << AlphaMin << endl;
-  cout << "The Tau is:" << endl;
-  outVector(Tau);
-  cout << "The ksi is:" << endl;
-  cout << ksi << endl;
-  cout << "The ro0 is:" << endl;
-  cout << ro0 << endl;
-  cout << "The ro1 is:" << endl;
-  cout << ro1 << endl;
+  // cout << "The A(shorted) Is:" << endl;
+  // outMatr(A);
+  // cout << "The B(shorted) Is:" << endl;
+  // outMatr(B);
+  // cout << "The duo(shorted) Is:" << endl;
+  // outVector(duo);
+  // cout << "The opt(shorted) Is:" << endl;
+  // outVector(optTau);
+  // cout << "The first appr Is:" << endl;
+  // outMatr(tempAppr);
+  // cout << "The last approximation Is:" << endl;
+  // outMatr(firstAppr);
+  // cout << "The Max alpha Is:" << endl;
+  // cout << AlphaMax << endl;
+  // cout << "The Min alpha Is:" << endl;
+  // cout << AlphaMin << endl;
+  // cout << "The Tau is:" << endl;
+  // outVector(Tau);
+  // cout << "The ksi is:" << endl;
+  // cout << ksi << endl;
+  // cout << "The ro0 is:" << endl;
+  // cout << ro0 << endl;
+  // cout << "The ro1 is:" << endl;
+  // cout << ro1 << endl;
   cout << "The maxIter is:" << endl;
   cout << maxIter << endl;
   cout << "The time is:" << endl;
   cout <<  dsecnd() - t0 << " s" << endl;
   cout << "The time of main is:" << endl;
   cout <<  tMain << " s" << endl;
-  cout << "The 1 1 is:" << endl;
-  cout <<  firstAppr[1][1] << endl;
-  cout << "The 2 2 is:" << endl;
-  cout <<  firstAppr[2][2] << endl;
-  cout << "The N - 2 N - 2 is:" << endl;
-  cout <<  firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] << endl;
-  cout << "The N - 3 N - 3 is:" << endl;
-  cout <<  firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] << endl;
+  // cout << "The 1 1 is:" << endl;
+  // cout <<  firstAppr[1][1] << endl;
+  // cout << "The 2 2 is:" << endl;
+  // cout <<  firstAppr[2][2] << endl;
+  // cout << "The N - 2 N - 2 is:" << endl;
+  // cout <<  firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] << endl;
+  // cout << "The N - 3 N - 3 is:" << endl;
+  // cout <<  firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] << endl;
   return 0;
 }

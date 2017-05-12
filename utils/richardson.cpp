@@ -71,6 +71,6 @@ void calculateOptTau(vector<double> &optTau, vector<double> duo) {
     for (int j = 0; j < temp.size(); j++) {
       optTau.push_back(temp[j]);
     }
-    outVector(optTau);
+    // outVector(optTau);
   }
 }

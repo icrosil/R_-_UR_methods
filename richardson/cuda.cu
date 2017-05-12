@@ -36,7 +36,7 @@ using namespace alglib_impl;
  */
 
 #ifndef N
-#define N 25
+#define N 5
 #endif
 
 __device__ int barrier = N - 2;
@@ -107,7 +107,7 @@ int main() {
   readVector(B);
   alglib::real_2d_array matrix;
   matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
-  double eps = 0.00001;
+  double eps = 0.001;
   /*
   *creating another parts
   *wr - целые части собственных чисел
@@ -178,29 +178,29 @@ int main() {
   double timeChecker = dsecnd();
   // char aster;
   for (int i = 1; i < maxIter + 1; ++i) {
-      // cout <<"The " <<i <<" iter" <<endl;
-      myshab <<<N - 2, N - 2>>>(d_b, N * N - 4 * N + 4, d_g);
-      // cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-      // cout <<endl <<"The temp from GPU is" <<endl;
-      // outVector(temp, N * N - 4 * N + 4);
-      // Shablon(firstAppr, temp);
-      // cout <<"The temp is" <<endl;
-      // outVector(temp, N * N - 4 * N + 4);
-      // cin>>aster;
-      // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-      mykernel <<<N - 2, N - 2>>>(d_a, d_b, d_c, d_d, N * N - 4 * N + 4, i, d_g);
-      // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-      // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
-      // for (int j = 1; j < N - 1; j++) {
-      //     for (int k = 1; k < N - 1; k++) {
-      //         firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
-      //     }
-      // }
-      // cout <<endl <<"fa" <<endl;
-      // outMatr(firstAppr);
-      // cout <<"ALLL" <<endl;
-      // outVector(all, N * N);
-      // cout <<endl;
+    // cout <<"The " <<i <<" iter" <<endl;
+    myshab <<<N - 2, N - 2>>>(d_b, N * N - 4 * N + 4, d_g);
+    // cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    // cout <<endl <<"The temp from GPU is" <<endl;
+    // outVector(temp, N * N - 4 * N + 4);
+    // Shablon(firstAppr, temp);
+    // cout <<"The temp is" <<endl;
+    // outVector(temp, N * N - 4 * N + 4);
+    // cin>>aster;
+    // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+    mykernel <<<N - 2, N - 2>>>(d_a, d_b, d_c, d_d, N * N - 4 * N + 4, i, d_g);
+    // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
+    // for (int j = 1; j < N - 1; j++) {
+    //     for (int k = 1; k < N - 1; k++) {
+    //         firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
+    //     }
+    // }
+    // cout <<endl <<"fa" <<endl;
+    // outMatr(firstAppr);
+    // cout <<"ALLL" <<endl;
+    // outVector(all, N * N);
+    // cout <<endl;
   }
   double tMain = dsecnd() - timeChecker;
   cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
@@ -222,43 +222,43 @@ int main() {
   */
   firstApprSet(tempAppr);
   cout << "The N is : " << N << endl;
-  cout <<"The A(shorted) Is:" <<endl;
-  outMatr(A);
-  cout <<"The B(shorted) Is:" <<endl;
-  outMatr(B);
-  cout <<"The duo(shorted) Is:" <<endl;
-  outVector(duo);
-  cout <<"The opt(shorted) Is:" <<endl;
-  outVector(optTau);
-  cout <<"The first appr Is:" <<endl;
-  outMatr(tempAppr);
-  cout <<"The last approximation Is:" <<endl;
-  outMatr(firstAppr);
-  cout <<"The Max alpha Is:" <<endl;
-  cout <<AlphaMax <<endl;
-  cout <<"The Min alpha Is:" <<endl;
-  cout <<AlphaMin <<endl;
-  cout <<"The Tau is:" <<endl;
-  outVector(Tau);
-  cout <<"The ksi is:" <<endl;
-  cout <<ksi <<endl;
-  cout <<"The ro0 is:" <<endl;
-  cout <<ro0 <<endl;
-  cout <<"The ro1 is:" <<endl;
-  cout <<ro1 <<endl;
+  // cout <<"The A(shorted) Is:" <<endl;
+  // outMatr(A);
+  // cout <<"The B(shorted) Is:" <<endl;
+  // outMatr(B);
+  // cout <<"The duo(shorted) Is:" <<endl;
+  // outVector(duo);
+  // cout <<"The opt(shorted) Is:" <<endl;
+  // outVector(optTau);
+  // cout <<"The first appr Is:" <<endl;
+  // outMatr(tempAppr);
+  // cout <<"The last approximation Is:" <<endl;
+  // outMatr(firstAppr);
+  // cout <<"The Max alpha Is:" <<endl;
+  // cout <<AlphaMax <<endl;
+  // cout <<"The Min alpha Is:" <<endl;
+  // cout <<AlphaMin <<endl;
+  // cout <<"The Tau is:" <<endl;
+  // outVector(Tau);
+  // cout <<"The ksi is:" <<endl;
+  // cout <<ksi <<endl;
+  // cout <<"The ro0 is:" <<endl;
+  // cout <<ro0 <<endl;
+  // cout <<"The ro1 is:" <<endl;
+  // cout <<ro1 <<endl;
   cout <<"The maxIter is:" <<endl;
   cout <<maxIter <<endl;
   cout <<"The time is:" <<endl;
   cout << dsecnd() - t0 <<" s" <<endl;
   cout <<"The time of main is:" <<endl;
   cout << tMain <<" s" <<endl;
-  cout <<"The 1 1 is:" <<endl;
-  cout << firstAppr[1][1] <<endl;
-  cout <<"The 2 2 is:" <<endl;
-  cout << firstAppr[2][2] <<endl;
-  cout <<"The N - 2 N - 2 is:" <<endl;
-  cout << firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] <<endl;
-  cout <<"The N - 3 N - 3 is:" <<endl;
-  cout << firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] <<endl;
+  // cout <<"The 1 1 is:" <<endl;
+  // cout << firstAppr[1][1] <<endl;
+  // cout <<"The 2 2 is:" <<endl;
+  // cout << firstAppr[2][2] <<endl;
+  // cout <<"The N - 2 N - 2 is:" <<endl;
+  // cout << firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] <<endl;
+  // cout <<"The N - 3 N - 3 is:" <<endl;
+  // cout << firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] <<endl;
   return 0;
 }
