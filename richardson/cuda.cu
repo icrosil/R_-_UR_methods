@@ -36,14 +36,14 @@ using namespace alglib_impl;
  */
 
 #ifndef N
-#define N 5
+#define N 20
 #endif
 
 __device__ int barrier = N - 2;
 __device__ int blocks = N - 2;
 
-__global__ void myshab(double *temp, int n, double *all) {
-  int index = threadIdx.x + blockIdx.x * blockDim.x;
+__global__ void myshab(double *temp, int n, double *all, int cuda) {
+  int index = (threadIdx.x * (cuda + 1)) + blockIdx.x * blockDim.x;
   int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
   if (index < n) {
     temp[index] = -4 * all[lindex] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1];
@@ -51,9 +51,9 @@ __global__ void myshab(double *temp, int n, double *all) {
 }
 
 // B, Shablon, Tau, firstAppr, iteration number
-__global__ void mykernel(double *a, double *b, double *c, double *d, int n, int i, double *all) {
+__global__ void mykernel(double *a, double *b, double *c, double *d, int n, int i, double *all, int cuda) {
     // TODO(me) syncthreads will work, so pass needed elements, let them for and sync on every iteration
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int index = (threadIdx.x * (cuda + 1)) + blockIdx.x * blockDim.x;
     int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
     if (index < n) {
         d[index] = (-a[index] + b[index]) * c[i] + d[index];
@@ -89,6 +89,9 @@ int main() {
    * @type double
    */
   double t0 = dsecnd();
+  vector<int> cudas(2);
+  cudas[0] = 0;
+  cudas[1] = 1;
   /**
    * N is for number of points of SLAU
    * @type int
@@ -107,7 +110,7 @@ int main() {
   readVector(B);
   alglib::real_2d_array matrix;
   matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
-  double eps = 0.001;
+  double eps = 0.0000001;
   /*
   *creating another parts
   *wr - целые части собственных чисел
@@ -178,8 +181,17 @@ int main() {
   double timeChecker = dsecnd();
   // char aster;
   for (int i = 1; i < maxIter + 1; ++i) {
+    for (size_t c = 0; c < cudas.size(); c++) {
+      cudaSetDevice(cudas[c]);
+      myshab <<<N - 2, (N - 2) / 2>>>(d_b, N * N - 4 * N + 4, d_g, c);
+      mykernel <<<N - 2, (N - 2) / 2>>>(d_a, d_b, d_c, d_d, N * N - 4 * N + 4, i, d_g, c);
+    }
+    // sync
+    for (size_t c = 0; c < cudas.size(); c++) {
+      cudaSetDevice(cudas[c]);
+      cudaDeviceSynchronize();
+    }
     // cout <<"The " <<i <<" iter" <<endl;
-    myshab <<<N - 2, N - 2>>>(d_b, N * N - 4 * N + 4, d_g);
     // cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
     // cout <<endl <<"The temp from GPU is" <<endl;
     // outVector(temp, N * N - 4 * N + 4);
@@ -188,7 +200,6 @@ int main() {
     // outVector(temp, N * N - 4 * N + 4);
     // cin>>aster;
     // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-    mykernel <<<N - 2, N - 2>>>(d_a, d_b, d_c, d_d, N * N - 4 * N + 4, i, d_g);
     // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
     // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
     // for (int j = 1; j < N - 1; j++) {

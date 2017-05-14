@@ -32,7 +32,7 @@ using namespace alglib_impl;
 
 // few definations
 #ifndef N
-#define N 40
+#define N 20
 #endif
 
 int main() {
@@ -52,7 +52,7 @@ int main() {
   readVector(B);
   alglib::real_2d_array matrix;
   matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
-  double eps = 0.001;
+  double eps = 0.0000001;
   /*
   *creating another parts
   *wr - целые части собственных чисел
@@ -142,13 +142,13 @@ int main() {
   cout <<  dsecnd() - t0 << " s" << endl;
   cout << "The time of main is:" << endl;
   cout <<  tMain << " s" << endl;
-  // cout << "The 1 1 is:" << endl;
-  // cout <<  firstAppr[1][1] << endl;
-  // cout << "The 2 2 is:" << endl;
-  // cout <<  firstAppr[2][2] << endl;
-  // cout << "The N - 2 N - 2 is:" << endl;
-  // cout <<  firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] << endl;
-  // cout << "The N - 3 N - 3 is:" << endl;
-  // cout <<  firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] << endl;
+  cout << "The 1 1 is:" << endl;
+  cout <<  firstAppr[1][1] << endl;
+  cout << "The 2 2 is:" << endl;
+  cout <<  firstAppr[2][2] << endl;
+  cout << "The N - 2 N - 2 is:" << endl;
+  cout <<  firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] << endl;
+  cout << "The N - 3 N - 3 is:" << endl;
+  cout <<  firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] << endl;
   return 0;
 }
