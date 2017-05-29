@@ -36,7 +36,7 @@ using namespace alglib_impl;
  */
 
 #ifndef N
-#define N 6
+#define N 4
 #endif
 
 __device__ int barrier = N - 2;
@@ -179,7 +179,7 @@ int main() {
   cudaMemcpy(d_g, all, size * (N * N), cudaMemcpyHostToDevice);
   cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   double timeChecker = dsecnd();
-  // char aster;
+  char aster;
   for (int i = 1; i < maxIter + 1; ++i) {
     // for (size_t c = 0; c < cudas.size(); c++) {
       // cudaSetDevice(cudas[c]);
@@ -191,27 +191,27 @@ int main() {
     //   cudaSetDevice(cudas[c]);
     //   cudaDeviceSynchronize();
     // }
-    // cout <<"The " <<i <<" iter" <<endl;
-    // cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-    // cout <<endl <<"The temp from GPU is" <<endl;
-    // outVector(temp, N * N - 4 * N + 4);
-    // Shablon(firstAppr, temp);
-    // cout <<"The temp is" <<endl;
-    // outVector(temp, N * N - 4 * N + 4);
-    // cin>>aster;
-    // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-    // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-    // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
-    // for (int j = 1; j < N - 1; j++) {
-    //     for (int k = 1; k < N - 1; k++) {
-    //         firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
-    //     }
-    // }
-    // cout <<endl <<"fa" <<endl;
-    // outMatr(firstAppr);
-    // cout <<"ALLL" <<endl;
-    // outVector(all, N * N);
-    // cout <<endl;
+    cout <<"The " <<i <<" iter" <<endl;
+    cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    cout <<endl <<"The temp from GPU is" <<endl;
+    outVector(temp, N * N - 4 * N + 4);
+    Shablon(firstAppr, temp);
+    cout <<"The temp is" <<endl;
+    outVector(temp, N * N - 4 * N + 4);
+    cin>>aster;
+    cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+    cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
+    for (int j = 1; j < N - 1; j++) {
+        for (int k = 1; k < N - 1; k++) {
+            firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
+        }
+    }
+    cout <<endl <<"fa" <<endl;
+    outMatr(firstAppr);
+    cout <<"ALLL" <<endl;
+    outVector(all, N * N);
+    cout <<endl;
   }
   double tMain = dsecnd() - timeChecker;
   cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);

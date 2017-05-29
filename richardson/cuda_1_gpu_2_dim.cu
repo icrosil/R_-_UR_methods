@@ -40,30 +40,35 @@ using namespace alglib_impl;
  * @type int
  */
 #ifndef N
-#define N 6
+#define N 4
 #endif
 
 __device__ int barrier = N - 2;
 __device__ int blocks = N - 2;
 
 __global__ void myshab(double *temp, int n, double *all) {
-  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int col = threadIdx.x + blockIdx.x * blockDim.x;
+  int row = threadIdx.y + blockIdx.y * blockDim.y;
+  // #if __CUDA_ARCH__ >= 200
+  //   printf("%d col \n", col);
+  //   printf("%d row \n", row);
+  // #endif
+  int index = row * n + col;
+  if (index >= n * n) return;
   int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
-  if (index < n) {
-    temp[index] = -4 * all[lindex] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1];
-  }
+  temp[index] = -4 * all[lindex] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1];
 }
 
 // B, Shablon, Tau, firstAppr, iteration number
 __global__ void mykernel(double *a, double *b, double *c, double *d, int n, int i, double *all) {
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int col = threadIdx.x + blockIdx.x * blockDim.x;
+    int row = threadIdx.y + blockIdx.y * blockDim.y;
+    int index = row * n + col;
+    if (index >= n * n) return;
     int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
-    if (index < n) {
-        d[index] = (-a[index] + b[index]) * c[i] + d[index];
-        all[lindex] = d[index];
-    }
+    d[index] = (-a[index] + b[index]) * c[i] + d[index];
+    all[lindex] = d[index];
 }
-
 
 
 int main() {
@@ -156,9 +161,33 @@ int main() {
   cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   double timeChecker = dsecnd();
   // char aster;
+  dim3 threadsPerBlock(16, 16);
+  dim3 numBlocks(max((N - 2) / threadsPerBlock.x, 1), max((N - 2) / threadsPerBlock.y, 1));
   for (int i = 1; i < maxIter + 1; ++i) {
-    myshab <<<N - 2, N - 2>>>(d_b, N * N - 4 * N + 4, d_g);
-    mykernel <<<N - 2, N - 2>>>(d_a, d_b, d_c, d_d, N * N - 4 * N + 4, i, d_g);
+    myshab <<<numBlocks, threadsPerBlock>>>(d_b, N - 2, d_g);
+    mykernel <<<numBlocks, threadsPerBlock>>>(d_a, d_b, d_c, d_d, N - 2, i, d_g);
+
+    // cout <<"The " <<i <<" iter" <<endl;
+    // cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    // cout <<endl <<"The temp from GPU is" <<endl;
+    // outVector(temp, N * N - 4 * N + 4);
+    // Shablon(firstAppr, temp);
+    // cout <<"The temp is" <<endl;
+    // outVector(temp, N * N - 4 * N + 4);
+    // cin >> aster;
+    // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+    // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
+    // for (int j = 1; j < N - 1; j++) {
+    //   for (int k = 1; k < N - 1; k++) {
+    //     firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
+    //   }
+    // }
+    // cout <<endl <<"fa" <<endl;
+    // outMatr(firstAppr);
+    // cout <<"ALLL" <<endl;
+    // outVector(all, N * N);
+    // cout <<endl;
   }
   double tMain = dsecnd() - timeChecker;
   cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);

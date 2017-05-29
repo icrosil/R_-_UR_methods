@@ -32,7 +32,7 @@ using namespace alglib_impl;
 
 // few definations
 #ifndef N
-#define N 6
+#define N 4
 #endif
 
 int main() {
