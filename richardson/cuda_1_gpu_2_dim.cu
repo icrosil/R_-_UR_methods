@@ -35,6 +35,10 @@ using namespace alglib_impl;
  * CUDA functions
  */
 
+/**
+ * N is for number of points of SLAU
+ * @type int
+ */
 #ifndef N
 #define N 6
 #endif
@@ -52,33 +56,12 @@ __global__ void myshab(double *temp, int n, double *all) {
 
 // B, Shablon, Tau, firstAppr, iteration number
 __global__ void mykernel(double *a, double *b, double *c, double *d, int n, int i, double *all) {
-    // TODO(me) syncthreads will work, so pass needed elements, let them for and sync on every iteration
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
     if (index < n) {
         d[index] = (-a[index] + b[index]) * c[i] + d[index];
         all[lindex] = d[index];
     }
-    // if i ever need an block sync (time expensive), or create own block sync with a vector of 00,
-    // fill them with 1 when block is done and go next if all 1
-    /* Do whatever it is that this block does. */
-
-
-  //  /* Make sure all threads in this block are actually here. */
-  //  __syncthreads();
-  //  /* Once we're done, decrease the value of the barrier. */
-  // if ( threadIdx.x == 0 )
-  //     atomicSub( &barrier , 1 );
-  //
-  // /* Now wait for the barrier to be zero. */
-  // if ( threadIdx.x == 0 )
-  //     while ( atomicCAS( &barrier , 0 , 0 ) != 0 );
-  //
-  // /* Make sure everybody has waited for the barrier. */
-  // __syncthreads();
-  //
-  // /* Carry on with whatever else you wanted to do. */
-  // barrier = N - 2;
 }
 
 
@@ -89,13 +72,6 @@ int main() {
    * @type double
    */
   double t0 = dsecnd();
-  vector<int> cudas(2);
-  cudas[0] = 0;
-  cudas[1] = 1;
-  /**
-   * N is for number of points of SLAU
-   * @type int
-   */
 
   /*
   * Getting inputs A and B
@@ -181,37 +157,8 @@ int main() {
   double timeChecker = dsecnd();
   // char aster;
   for (int i = 1; i < maxIter + 1; ++i) {
-    // for (size_t c = 0; c < cudas.size(); c++) {
-      // cudaSetDevice(cudas[c]);
     myshab <<<N - 2, N - 2>>>(d_b, N * N - 4 * N + 4, d_g);
     mykernel <<<N - 2, N - 2>>>(d_a, d_b, d_c, d_d, N * N - 4 * N + 4, i, d_g);
-    // }
-    // sync
-    // for (size_t c = 0; c < cudas.size(); c++) {
-    //   cudaSetDevice(cudas[c]);
-    //   cudaDeviceSynchronize();
-    // }
-    // cout <<"The " <<i <<" iter" <<endl;
-    // cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-    // cout <<endl <<"The temp from GPU is" <<endl;
-    // outVector(temp, N * N - 4 * N + 4);
-    // Shablon(firstAppr, temp);
-    // cout <<"The temp is" <<endl;
-    // outVector(temp, N * N - 4 * N + 4);
-    // cin>>aster;
-    // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-    // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-    // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
-    // for (int j = 1; j < N - 1; j++) {
-    //     for (int k = 1; k < N - 1; k++) {
-    //         firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
-    //     }
-    // }
-    // cout <<endl <<"fa" <<endl;
-    // outMatr(firstAppr);
-    // cout <<"ALLL" <<endl;
-    // outVector(all, N * N);
-    // cout <<endl;
   }
   double tMain = dsecnd() - timeChecker;
   cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
@@ -220,10 +167,6 @@ int main() {
       firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
     }
   }
-
-  // for (int i = 0; i < firstAppr.size(); i++) {
-  //     firstAppr[i] /= ((firstAppr.size() - 1) * (firstAppr.size() - 1));
-  // }
   cudaFree(d_a);
   cudaFree(d_b);
   // cudaFree(d_c);

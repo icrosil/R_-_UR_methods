@@ -52,7 +52,7 @@ int main() {
   readVector(B);
   alglib::real_2d_array matrix;
   matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
-  double eps = 0.0000001;
+  double eps = 0.01;
   /*
   *creating another parts
   *wr - целые части собственных чисел
