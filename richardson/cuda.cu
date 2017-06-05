@@ -173,6 +173,11 @@ int main() {
   for (int i = 0; i < maxIter + 1; i++) {
     taum[i] = Tau[i];
   }
+
+  outVector(temp, N * N - 4 * N + 4);
+  outVector(b, N * N - 4 * N + 4);
+  outVector(fa, N * N - 4 * N + 4);
+
   cudaMemcpy(d_a, b, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   cudaMemcpy(d_d, fa, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   cudaMemcpy(d_c, taum, size * (maxIter + 1), cudaMemcpyHostToDevice);

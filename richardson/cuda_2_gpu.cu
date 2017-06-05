@@ -165,21 +165,24 @@ int main() {
     cudaMalloc((void **)&d_c[i], size * (maxIter + 1));
   }
 
-  // for (int j = 1; j < N - 1; j++) {
-  //   for (int k = 1; k < N - 1; k++) {
-  //     temp[(j - 1) * (N - 2) + (k - 1)] = 0;
-  //     b[(j - 1) * (N - 2) + (k - 1)] = B[j][k];
-  //     fa[(j - 1) * (N - 2) + (k - 1)] = firstAppr[j][k];
-  //   }
-  // }
-  // for (int j = 0; j < N ; j++) {
-  //   for (int k = 0; k < N; k++) {
-  //     all[j * N + k] = firstAppr[j][k];
-  //   }
-  // }
-  // for (int i = 0; i < maxIter + 1; i++) {
-  //   taum[i] = Tau[i];
-  // }
+  for (size_t i = 0; i < GPU; i++) {
+    int plus = i * ((int)(N / 2) - 1);
+    for (int j = 1; j < (int)(N / 2); j++) {
+      for (int k = 1; k < N - 1; k++) {
+        temp[i][(j - 1) * (int)((N - 2) / 2) + (k - 1)] = 0;
+        b[i][(j - 1) * (int)((N - 2) / 2) + (k - 1)] = B[j + plus][k];
+        fa[i][(j - 1) * (int)((N - 2) / 2) + (k - 1)] = firstAppr[j + plus][k];
+      }
+    }
+  }
+  for (int j = 0; j < N ; j++) {
+    for (int k = 0; k < N; k++) {
+      all[j * N + k] = firstAppr[j][k];
+    }
+  }
+  for (int i = 0; i < maxIter + 1; i++) {
+    taum[i] = Tau[i];
+  }
   // cudaMemcpy(d_a, b, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   // cudaMemcpy(d_d, fa, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   // cudaMemcpy(d_c, taum, size * (maxIter + 1), cudaMemcpyHostToDevice);
