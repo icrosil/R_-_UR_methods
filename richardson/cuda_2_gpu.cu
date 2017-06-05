@@ -183,11 +183,14 @@ int main() {
   for (int i = 0; i < maxIter + 1; i++) {
     taum[i] = Tau[i];
   }
-  // cudaMemcpy(d_a, b, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-  // cudaMemcpy(d_d, fa, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-  // cudaMemcpy(d_c, taum, size * (maxIter + 1), cudaMemcpyHostToDevice);
-  // cudaMemcpy(d_g, all, size * (N * N), cudaMemcpyHostToDevice);
-  // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+  for (int i = 0; i < GPU; i++) {
+    cudaSetDevice(i);
+    cudaMemcpy(d_a[i], b[i], size * (n_splitted_inner), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_d[i], fa[i], size * (n_splitted_inner), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_c[i], taum, size * (maxIter + 1), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_g[i], all, size * (N * N), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b[i], temp[i], size * (n_splitted_inner), cudaMemcpyHostToDevice);
+  }
   // double timeChecker = dsecnd();
   // // char aster;
   // dim3 threadsPerBlock(16, 16);
@@ -219,16 +222,24 @@ int main() {
   //   // cout <<endl;
   // }
   // double tMain = dsecnd() - timeChecker;
-  // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-  // for (int j = 1; j < N - 1; j++) {
-  //   for (int k = 1; k < N - 1; k++) {
-  //     firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
-  //   }
-  // }
-  // cudaFree(d_a);
-  // cudaFree(d_b);
-  // // cudaFree(d_c);
-  // cudaFree(d_d);
+  for (size_t i = 0; i < GPU; i++) {
+    cudaMemcpy(fa[i], d_d[i], size * (n_splitted_inner), cudaMemcpyDeviceToHost);
+  }
+  for (size_t i = 0; i < GPU; i++) {
+    int plus = i * ((int)(N / 2) - 1);
+    for (int j = 1; j < (int)(N / 2); j++) {
+      for (int k = 1; k < N - 1; k++) {
+        firstAppr[j + plus][k] = fa[i][(j - 1) * (int)((N - 2) / 2) + (k - 1)];
+      }
+    }
+  }
+  for (size_t i = 0; i < GPU; i++) {
+    cudaFree(d_a[i]);
+    cudaFree(d_b[i]);
+    cudaFree(d_c[i]);
+    cudaFree(d_d[i]);
+    cudaFree(d_g[i]);
+  }
   /*
   * outing
   */
@@ -244,8 +255,8 @@ int main() {
   // outVector(optTau);
   // cout <<"The first appr Is:" <<endl;
   // outMatr(tempAppr);
-  // cout <<"The last approximation Is:" <<endl;
-  // outMatr(firstAppr);
+  cout <<"The last approximation Is:" <<endl;
+  outMatr(firstAppr);
   // cout <<"The Max alpha Is:" <<endl;
   // cout <<AlphaMax <<endl;
   // cout <<"The Min alpha Is:" <<endl;
