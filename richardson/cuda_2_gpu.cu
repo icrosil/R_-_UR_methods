@@ -41,7 +41,7 @@ using namespace alglib_impl;
  * @type int
  */
 #ifndef N
-#define N 4
+#define N 10
 #endif
 #ifndef GPU
 #define GPU 2
@@ -50,26 +50,28 @@ using namespace alglib_impl;
 __device__ int barrier = N - 2;
 __device__ int blocks = N - 2;
 
-__global__ void myshab(double *temp, int n, double *all) {
+__global__ void myshab(double *temp, int n_row, int n_col, int plus, double *all) {
   int col = threadIdx.x + blockIdx.x * blockDim.x;
   int row = threadIdx.y + blockIdx.y * blockDim.y;
+  int index = row * n_col + col;
+  if (index >= n_row * n_col) return;
+  int lindex = index + N + 1 + 2 * (int) (index / (N - 2)) + (N * plus);
   // #if __CUDA_ARCH__ >= 200
-  //   printf("%d col \n", col);
-  //   printf("%d row \n", row);
+  //   printf("%d index \n", index);
+  //   printf("%d lindex \n", lindex);
   // #endif
-  int index = row * n + col;
-  if (index >= n * n) return;
-  int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
   temp[index] = -4 * all[lindex] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1];
 }
 
 // B, Shablon, Tau, firstAppr, iteration number
-__global__ void mykernel(double *a, double *b, double *c, double *d, int n, int i, double *all) {
+__global__ void mykernel(double *a, double *b, double *c, double *d, int n_row, int n_col, int plus, int i,
+  double *all
+) {
     int col = threadIdx.x + blockIdx.x * blockDim.x;
     int row = threadIdx.y + blockIdx.y * blockDim.y;
-    int index = row * n + col;
-    if (index >= n * n) return;
-    int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
+    int index = row * n_col + col;
+    if (index >= n_row * n_col) return;
+    int lindex = index + N + 1 + 2 * (int) (index / (N - 2)) + (N * plus);
     d[index] = (-a[index] + b[index]) * c[i] + d[index];
     all[lindex] = d[index];
 }
@@ -158,6 +160,11 @@ int main() {
 
   for (size_t i = 0; i < GPU; i++) {
     cudaSetDevice(cudas[i]);
+    cudaDeviceEnablePeerAccess(cudas[i], 0);
+  }
+
+  for (size_t i = 0; i < GPU; i++) {
+    cudaSetDevice(cudas[i]);
     cudaMalloc((void **)&d_a[i], size * (n_splitted_inner));
     cudaMalloc((void **)&d_b[i], size * (n_splitted_inner));
     cudaMalloc((void **)&d_d[i], size * (n_splitted_inner));
@@ -180,48 +187,64 @@ int main() {
       all[j * N + k] = firstAppr[j][k];
     }
   }
+  // outVector(all, N * N);
   for (int i = 0; i < maxIter + 1; i++) {
     taum[i] = Tau[i];
   }
   for (int i = 0; i < GPU; i++) {
-    cudaSetDevice(i);
+    cudaSetDevice(cudas[i]);
     cudaMemcpy(d_a[i], b[i], size * (n_splitted_inner), cudaMemcpyHostToDevice);
     cudaMemcpy(d_d[i], fa[i], size * (n_splitted_inner), cudaMemcpyHostToDevice);
     cudaMemcpy(d_c[i], taum, size * (maxIter + 1), cudaMemcpyHostToDevice);
     cudaMemcpy(d_g[i], all, size * (N * N), cudaMemcpyHostToDevice);
     cudaMemcpy(d_b[i], temp[i], size * (n_splitted_inner), cudaMemcpyHostToDevice);
   }
-  // double timeChecker = dsecnd();
-  // // char aster;
-  // dim3 threadsPerBlock(16, 16);
-  // dim3 numBlocks(max((N - 2) / threadsPerBlock.x, 1), max((N - 2) / threadsPerBlock.y, 1));
-  // for (int i = 1; i < maxIter + 1; ++i) {
-  //   myshab <<<numBlocks, threadsPerBlock>>>(d_b, N - 2, d_g);
-  //   mykernel <<<numBlocks, threadsPerBlock>>>(d_a, d_b, d_c, d_d, N - 2, i, d_g);
-  //
-  //   // cout <<"The " <<i <<" iter" <<endl;
-  //   // cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-  //   // cout <<endl <<"The temp from GPU is" <<endl;
-  //   // outVector(temp, N * N - 4 * N + 4);
-  //   // Shablon(firstAppr, temp);
-  //   // cout <<"The temp is" <<endl;
-  //   // outVector(temp, N * N - 4 * N + 4);
-  //   // cin >> aster;
-  //   // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-  //   // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-  //   // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
-  //   // for (int j = 1; j < N - 1; j++) {
-  //   //   for (int k = 1; k < N - 1; k++) {
-  //   //     firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
-  //   //   }
-  //   // }
-  //   // cout <<endl <<"fa" <<endl;
-  //   // outMatr(firstAppr);
-  //   // cout <<"ALLL" <<endl;
-  //   // outVector(all, N * N);
-  //   // cout <<endl;
-  // }
-  // double tMain = dsecnd() - timeChecker;
+  double timeChecker = dsecnd();
+  // char aster;
+  dim3 threadsPerBlock(16, 16);
+  int n_row = (int)((N - 2) / 2);
+  int n_col = (N - 2);
+  dim3 numBlocks(max(n_row / threadsPerBlock.x, 1), max(n_col / threadsPerBlock.y, 1));
+  for (int j = 1; j < maxIter + 1; ++j) {
+    for (size_t i = 0; i < GPU; i++) {
+      cudaSetDevice(cudas[i]);
+      int plus = i * ((int)(N / 2) - 1);
+      myshab <<<numBlocks, threadsPerBlock>>>(d_b[i], n_row, n_col, plus, d_g[i]);
+      mykernel <<<numBlocks, threadsPerBlock>>>(d_a[i], d_b[i], d_c[i], d_d[i], n_row, n_col, plus, j, d_g[i]);
+
+      // cout <<"The " <<j <<" iter" <<endl;
+      // cudaMemcpy(temp[i], d_b[i], size * (n_splitted_inner), cudaMemcpyDeviceToHost);
+      // cout <<endl <<"The temp from GPU is" <<endl;
+      // outVector(temp[i], n_splitted_inner);
+      // Shablon(firstAppr, temp);
+      // cout <<"The temp is" <<endl;
+      // outVector(temp, N * N - 4 * N + 4);
+      // cin >> aster;
+      // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+      // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+      // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
+      // for (int j = 1; j < N - 1; j++) {
+      //   for (int k = 1; k < N - 1; k++) {
+      //     firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
+      //   }
+      // }
+      // cout <<endl <<"fa" <<endl;
+      // outMatr(firstAppr);
+      // cout <<"ALLL" <<endl;
+      // outVector(all, N * N);
+      // cout <<endl;
+    }
+    for (size_t i = 0; i < GPU; i++) {
+      int index = N * ((int)(N / 2) + (i == 0 ? -1 : 0));
+      // copy all to other.
+      cudaMemcpy(
+        &d_g[i == 0 ? 1 : 0][index],
+        &d_g[i][index],
+        size * N,
+        cudaMemcpyDefault);
+    }
+  }
+  double tMain = dsecnd() - timeChecker;
   for (size_t i = 0; i < GPU; i++) {
     cudaMemcpy(fa[i], d_d[i], size * (n_splitted_inner), cudaMemcpyDeviceToHost);
   }
@@ -244,7 +267,7 @@ int main() {
   * outing
   */
   // firstApprSet(tempAppr);
-  // cout << "The N is : " << N << endl;
+  cout << "The N is : " << N << endl;
   // cout <<"The A(shorted) Is:" <<endl;
   // outMatr(A);
   // cout <<"The B(shorted) Is:" <<endl;
@@ -255,8 +278,8 @@ int main() {
   // outVector(optTau);
   // cout <<"The first appr Is:" <<endl;
   // outMatr(tempAppr);
-  cout <<"The last approximation Is:" <<endl;
-  outMatr(firstAppr);
+  // cout <<"The last approximation Is:" <<endl;
+  // outMatr(firstAppr);
   // cout <<"The Max alpha Is:" <<endl;
   // cout <<AlphaMax <<endl;
   // cout <<"The Min alpha Is:" <<endl;
@@ -270,18 +293,18 @@ int main() {
   // cout <<"The ro1 is:" <<endl;
   // cout <<ro1 <<endl;
   // cout <<"The maxIter is:" <<endl;
-  // cout <<maxIter <<endl;
-  // cout <<"The time is:" <<endl;
-  // cout << dsecnd() - t0 <<" s" <<endl;
-  // cout <<"The time of main is:" <<endl;
-  // cout << tMain <<" s" <<endl;
-  // cout <<"The 1 1 is:" <<endl;
-  // cout << firstAppr[1][1] <<endl;
-  // cout <<"The 2 2 is:" <<endl;
-  // cout << firstAppr[2][2] <<endl;
-  // cout <<"The N - 2 N - 2 is:" <<endl;
-  // cout << firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] <<endl;
-  // cout <<"The N - 3 N - 3 is:" <<endl;
-  // cout << firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] <<endl;
+  cout <<maxIter <<endl;
+  cout <<"The time is:" <<endl;
+  cout << dsecnd() - t0 <<" s" <<endl;
+  cout <<"The time of main is:" <<endl;
+  cout << tMain <<" s" <<endl;
+  cout <<"The 1 1 is:" <<endl;
+  cout << firstAppr[1][1] <<endl;
+  cout <<"The 2 2 is:" <<endl;
+  cout << firstAppr[2][2] <<endl;
+  cout <<"The N - 2 N - 2 is:" <<endl;
+  cout << firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] <<endl;
+  cout <<"The N - 3 N - 3 is:" <<endl;
+  cout << firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] <<endl;
   return 0;
 }
