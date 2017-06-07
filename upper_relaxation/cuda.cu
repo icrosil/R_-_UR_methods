@@ -34,7 +34,7 @@ using namespace alglib_impl;
  * CUDA functions
  */
 #ifndef N
-#define N 5
+#define N 4
 #endif
 
 __device__ int blocks = N - 2;
