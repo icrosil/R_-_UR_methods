@@ -36,7 +36,7 @@ using namespace alglib_impl;
  */
 
 #ifndef N
-#define N 4
+#define N 40
 #endif
 
 __device__ int barrier = N - 2;
@@ -119,17 +119,16 @@ int main() {
   *vr - собственный правый вектор
   */
   alglib::real_1d_array wr;
-  alglib::real_1d_array wi;
-  alglib::real_2d_array vl;
-  alglib::real_2d_array vr;
+  alglib::real_2d_array Z;
   /*
   * расчет собственных чисел
   */
-  alglib::rmatrixevd(matrix, (N - 2) * (N - 2), 0, wr, wi, vl, vr);
+  alglib::smatrixevd(matrix, (N - 2) * (N - 2), 0, true, wr, Z);
   double AlphaMax = findMaxRealArr(wr);
   double AlphaMin = findMinRealArr(wr);
   Tau[0] = 2. / (AlphaMax + AlphaMin);
   double ksi = AlphaMin / AlphaMax;
+  std::cout << ksi << "ksi" << '\n';  // is it important to calculate n*n alphas?
   double ro0 = (1. - ksi) / (1. + ksi);
   double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
   int maxIter = findMaxIter(eps, ksi);
@@ -174,9 +173,9 @@ int main() {
     taum[i] = Tau[i];
   }
 
-  outVector(temp, N * N - 4 * N + 4);
-  outVector(b, N * N - 4 * N + 4);
-  outVector(fa, N * N - 4 * N + 4);
+  // outVector(temp, N * N - 4 * N + 4);
+  // outVector(b, N * N - 4 * N + 4);
+  // outVector(fa, N * N - 4 * N + 4);
 
   cudaMemcpy(d_a, b, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   cudaMemcpy(d_d, fa, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
@@ -199,10 +198,10 @@ int main() {
     cout <<"The " <<i <<" iter" <<endl;
     cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
     cout <<endl <<"The temp from GPU is" <<endl;
-    outVector(temp, N * N - 4 * N + 4);
+    // outVector(temp, N * N - 4 * N + 4);
     Shablon(firstAppr, temp);
     cout <<"The temp is" <<endl;
-    outVector(temp, N * N - 4 * N + 4);
+    // outVector(temp, N * N - 4 * N + 4);
     cin>>aster;
     cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
     cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
