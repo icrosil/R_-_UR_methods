@@ -109,13 +109,11 @@ int main() {
   *vr - собственный правый вектор
   */
   alglib::real_1d_array wr;
-  alglib::real_1d_array wi;
   alglib::real_2d_array vl;
-  alglib::real_2d_array vr;
   /*
   * расчет собственных чисел
   */
-  alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
+  alglib::smatrixevd(matrix, N - 2, 0, true, wr, vl);
 
   /*
   *допустим что спектральынй радиус матрицы это максимальное собственное число (которые все норм должны быть) без модуля, так как все должны быть положительны

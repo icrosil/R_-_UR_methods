@@ -119,11 +119,11 @@ int main() {
   *vr - собственный правый вектор
   */
   alglib::real_1d_array wr;
-  alglib::real_2d_array Z;
+  alglib::real_2d_array vl;
   /*
   * расчет собственных чисел
   */
-  alglib::smatrixevd(matrix, (N - 2) * (N - 2), 0, true, wr, Z);
+  alglib::smatrixevd(matrix, N - 2, 0, true, wr, vl);
   double AlphaMax = findMaxRealArr(wr);
   double AlphaMin = findMinRealArr(wr);
   Tau[0] = 2. / (AlphaMax + AlphaMin);

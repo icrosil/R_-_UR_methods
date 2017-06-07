@@ -120,7 +120,7 @@ int main() {
   /*
   * расчет собственных чисел
   */
-  alglib::rmatrixevd(matrix, n_inner, 0, wr, wi, vl, vr);
+  alglib::smatrixevd(matrix, N - 2, 0, true, wr, vl);
   double AlphaMax = findMaxRealArr(wr);
   double AlphaMin = findMinRealArr(wr);
   Tau[0] = 2. / (AlphaMax + AlphaMin);
