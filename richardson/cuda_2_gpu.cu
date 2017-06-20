@@ -41,7 +41,7 @@ using namespace alglib_impl;
  * @type int
  */
 #ifndef N
-#define N 10
+#define N 40
 #endif
 #ifndef GPU
 #define GPU 2
@@ -56,10 +56,6 @@ __global__ void myshab(double *temp, int n_row, int n_col, int plus, double *all
   int index = row * n_col + col;
   if (index >= n_row * n_col) return;
   int lindex = index + N + 1 + 2 * (int) (index / (N - 2)) + (N * plus);
-  // #if __CUDA_ARCH__ >= 200
-  //   printf("%d index \n", index);
-  //   printf("%d lindex \n", lindex);
-  // #endif
   temp[index] = -4 * all[lindex] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1];
 }
 
@@ -105,7 +101,7 @@ int main() {
   readVector(B);
   alglib::real_2d_array matrix;
   matrix.setcontent(n_inner, n_inner, arrToRealArr(A));
-  double eps = 0.01;
+  double eps = 1e-5;
   /*
   *creating another parts
   *wr - целые части собственных чисел
@@ -120,12 +116,12 @@ int main() {
   /*
   * расчет собственных чисел
   */
-  alglib::smatrixevd(matrix, N - 2, 0, true, wr, vl);
+  alglib::smatrixevd(matrix, (int)sqrt(N - 2), 0, true, wr, vl);
   double AlphaMax = findMaxRealArr(wr);
   double AlphaMin = findMinRealArr(wr);
   Tau[0] = 2. / (AlphaMax + AlphaMin);
   double ksi = AlphaMin / AlphaMax;
-  std::cout << ksi << "ksi" << '\n';  // is it important to calculate n*n alphas?
+  // std::cout << ksi << "ksi" << '\n';  // is it important to calculate n*n alphas?
   double ro0 = (1. - ksi) / (1. + ksi);
   double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
   int maxIter = findMaxIter(eps, ksi);
@@ -211,28 +207,6 @@ int main() {
       int plus = i * ((int)(N / 2) - 1);
       myshab <<<numBlocks, threadsPerBlock>>>(d_b[i], n_row, n_col, plus, d_g[i]);
       mykernel <<<numBlocks, threadsPerBlock>>>(d_a[i], d_b[i], d_c[i], d_d[i], n_row, n_col, plus, j, d_g[i]);
-
-      // cout <<"The " <<j <<" iter" <<endl;
-      // cudaMemcpy(temp[i], d_b[i], size * (n_splitted_inner), cudaMemcpyDeviceToHost);
-      // cout <<endl <<"The temp from GPU is" <<endl;
-      // outVector(temp[i], n_splitted_inner);
-      // Shablon(firstAppr, temp);
-      // cout <<"The temp is" <<endl;
-      // outVector(temp, N * N - 4 * N + 4);
-      // cin >> aster;
-      // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-      // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-      // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
-      // for (int j = 1; j < N - 1; j++) {
-      //   for (int k = 1; k < N - 1; k++) {
-      //     firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
-      //   }
-      // }
-      // cout <<endl <<"fa" <<endl;
-      // outMatr(firstAppr);
-      // cout <<"ALLL" <<endl;
-      // outVector(all, N * N);
-      // cout <<endl;
     }
     for (size_t i = 0; i < GPU; i++) {
       int index = N * ((int)(N / 2) + (i == 0 ? -1 : 0));
@@ -244,10 +218,11 @@ int main() {
         cudaMemcpyDefault);
     }
   }
-  double tMain = dsecnd() - timeChecker;
   for (size_t i = 0; i < GPU; i++) {
     cudaMemcpy(fa[i], d_d[i], size * (n_splitted_inner), cudaMemcpyDeviceToHost);
   }
+  cudaDeviceSynchronize();
+  double tMain = dsecnd() - timeChecker;
   for (size_t i = 0; i < GPU; i++) {
     int plus = i * ((int)(N / 2) - 1);
     for (int j = 1; j < (int)(N / 2); j++) {
@@ -293,18 +268,18 @@ int main() {
   // cout <<"The ro1 is:" <<endl;
   // cout <<ro1 <<endl;
   // cout <<"The maxIter is:" <<endl;
-  cout <<maxIter <<endl;
+  // cout <<maxIter <<endl;
   cout <<"The time is:" <<endl;
   cout << dsecnd() - t0 <<" s" <<endl;
   cout <<"The time of main is:" <<endl;
   cout << tMain <<" s" <<endl;
-  cout <<"The 1 1 is:" <<endl;
-  cout << firstAppr[1][1] <<endl;
-  cout <<"The 2 2 is:" <<endl;
-  cout << firstAppr[2][2] <<endl;
-  cout <<"The N - 2 N - 2 is:" <<endl;
-  cout << firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] <<endl;
-  cout <<"The N - 3 N - 3 is:" <<endl;
-  cout << firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] <<endl;
+  // cout <<"The 1 1 is:" <<endl;
+  // cout << firstAppr[1][1] <<endl;
+  // cout <<"The 2 2 is:" <<endl;
+  // cout << firstAppr[2][2] <<endl;
+  // cout <<"The N - 2 N - 2 is:" <<endl;
+  // cout << firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] <<endl;
+  // cout <<"The N - 3 N - 3 is:" <<endl;
+  // cout << firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] <<endl;
   return 0;
 }

@@ -52,33 +52,12 @@ __global__ void myshab(double *temp, int n, double *all) {
 
 // B, Shablon, Tau, firstAppr, iteration number
 __global__ void mykernel(double *a, double *b, double *c, double *d, int n, int i, double *all) {
-    // TODO(me) syncthreads will work, so pass needed elements, let them for and sync on every iteration
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
-    if (index < n) {
-        d[index] = (-a[index] + b[index]) * c[i] + d[index];
-        all[lindex] = d[index];
-    }
-    // if i ever need an block sync (time expensive), or create own block sync with a vector of 00,
-    // fill them with 1 when block is done and go next if all 1
-    /* Do whatever it is that this block does. */
-
-
-  //  /* Make sure all threads in this block are actually here. */
-  //  __syncthreads();
-  //  /* Once we're done, decrease the value of the barrier. */
-  // if ( threadIdx.x == 0 )
-  //     atomicSub( &barrier , 1 );
-  //
-  // /* Now wait for the barrier to be zero. */
-  // if ( threadIdx.x == 0 )
-  //     while ( atomicCAS( &barrier , 0 , 0 ) != 0 );
-  //
-  // /* Make sure everybody has waited for the barrier. */
-  // __syncthreads();
-  //
-  // /* Carry on with whatever else you wanted to do. */
-  // barrier = N - 2;
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
+  if (index < n) {
+    d[index] = (-a[index] + b[index]) * c[i] + d[index];
+    all[lindex] = d[index];
+  }
 }
 
 
@@ -110,7 +89,7 @@ int main() {
   readVector(B);
   alglib::real_2d_array matrix;
   matrix.setcontent((N - 2) * (N - 2), (N - 2) * (N - 2), arrToRealArr(A));
-  double eps = 0.01;
+  double eps = 1e-5;
   /*
   *creating another parts
   *wr - целые части собственных чисел
@@ -123,12 +102,12 @@ int main() {
   /*
   * расчет собственных чисел
   */
-  alglib::smatrixevd(matrix, N - 2, 0, true, wr, vl);
+  alglib::smatrixevd(matrix, (int)sqrt(N - 2), 0, true, wr, vl);
   double AlphaMax = findMaxRealArr(wr);
   double AlphaMin = findMinRealArr(wr);
   Tau[0] = 2. / (AlphaMax + AlphaMin);
   double ksi = AlphaMin / AlphaMax;
-  std::cout << ksi << "ksi" << '\n';  // is it important to calculate n*n alphas?
+  // std::cout << ksi << "ksi" << '\n';  // is it important to calculate n*n alphas?
   double ro0 = (1. - ksi) / (1. + ksi);
   double ro1 = (1. - sqrt(ksi)) / (1. + sqrt(ksi));
   int maxIter = findMaxIter(eps, ksi);
@@ -183,7 +162,7 @@ int main() {
   cudaMemcpy(d_g, all, size * (N * N), cudaMemcpyHostToDevice);
   cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
   double timeChecker = dsecnd();
-  char aster;
+  // char aster;
   for (int i = 1; i < maxIter + 1; ++i) {
     // for (size_t c = 0; c < cudas.size(); c++) {
       // cudaSetDevice(cudas[c]);
@@ -195,30 +174,31 @@ int main() {
     //   cudaSetDevice(cudas[c]);
     //   cudaDeviceSynchronize();
     // }
-    cout <<"The " <<i <<" iter" <<endl;
-    cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-    cout <<endl <<"The temp from GPU is" <<endl;
-    // outVector(temp, N * N - 4 * N + 4);
-    Shablon(firstAppr, temp);
-    cout <<"The temp is" <<endl;
-    // outVector(temp, N * N - 4 * N + 4);
-    cin>>aster;
-    cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
-    cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-    cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
-    for (int j = 1; j < N - 1; j++) {
-        for (int k = 1; k < N - 1; k++) {
-            firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
-        }
-    }
-    cout <<endl <<"fa" <<endl;
-    outMatr(firstAppr);
-    cout <<"ALLL" <<endl;
-    outVector(all, N * N);
-    cout <<endl;
+    // cout <<"The " <<i <<" iter" <<endl;
+    // cudaMemcpy(temp, d_b, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    // cout <<endl <<"The temp from GPU is" <<endl;
+    // // outVector(temp, N * N - 4 * N + 4);
+    // Shablon(firstAppr, temp);
+    // cout <<"The temp is" <<endl;
+    // // outVector(temp, N * N - 4 * N + 4);
+    // cin>>aster;
+    // cudaMemcpy(d_b, temp, size * (N * N - 4 * N + 4), cudaMemcpyHostToDevice);
+    // cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+    // cudaMemcpy(all, d_g, size * (N * N), cudaMemcpyDeviceToHost);
+    // for (int j = 1; j < N - 1; j++) {
+    //     for (int k = 1; k < N - 1; k++) {
+    //         firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
+    //     }
+    // }
+    // cout <<endl <<"fa" <<endl;
+    // outMatr(firstAppr);
+    // cout <<"ALLL" <<endl;
+    // outVector(all, N * N);
+    // cout <<endl;
   }
-  double tMain = dsecnd() - timeChecker;
   cudaMemcpy(fa, d_d, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+  cudaDeviceSynchronize();
+  double tMain = dsecnd() - timeChecker;
   for (int j = 1; j < N - 1; j++) {
     for (int k = 1; k < N - 1; k++) {
       firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
@@ -261,19 +241,19 @@ int main() {
   // cout <<ro0 <<endl;
   // cout <<"The ro1 is:" <<endl;
   // cout <<ro1 <<endl;
-  cout <<"The maxIter is:" <<endl;
-  cout <<maxIter <<endl;
+  // cout <<"The maxIter is:" <<endl;
+  // cout <<maxIter <<endl;
   cout <<"The time is:" <<endl;
   cout << dsecnd() - t0 <<" s" <<endl;
   cout <<"The time of main is:" <<endl;
   cout << tMain <<" s" <<endl;
-  cout <<"The 1 1 is:" <<endl;
-  cout << firstAppr[1][1] <<endl;
-  cout <<"The 2 2 is:" <<endl;
-  cout << firstAppr[2][2] <<endl;
-  cout <<"The N - 2 N - 2 is:" <<endl;
-  cout << firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] <<endl;
-  cout <<"The N - 3 N - 3 is:" <<endl;
-  cout << firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] <<endl;
+  // cout <<"The 1 1 is:" <<endl;
+  // cout << firstAppr[1][1] <<endl;
+  // cout <<"The 2 2 is:" <<endl;
+  // cout << firstAppr[2][2] <<endl;
+  // cout <<"The N - 2 N - 2 is:" <<endl;
+  // cout << firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] <<endl;
+  // cout <<"The N - 3 N - 3 is:" <<endl;
+  // cout << firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] <<endl;
   return 0;
 }

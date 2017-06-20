@@ -34,21 +34,18 @@ using namespace alglib_impl;
  * CUDA functions
  */
 #ifndef N
-#define N 4
+#define N 40
 #endif
 
 __device__ int blocks = N - 2;
 
 __global__ void mykernel(double *rightSide, double wOpt, double *fa, double *diff, int n, double *all, int i, int j,
   int litN) {
-  // tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
-
-  int index = threadIdx.x;  //+ blockIdx.x * blockDim.x;
+  int index = threadIdx.x;
   int row = (i - j + 1) / 2;
   int index1 = row * litN + (((j - i) == 1)? j : litN) - 1 + index * (litN - 1);
   int lindex = index1 + N + 1 + 2 * (int) (index1 / (N - 2));
   if (index1 < n) {
-    //  fa[index1] = index1;
     fa[index1] = (-rightSide[index1] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1] -
       4 * (1 - 1. / wOpt) * all[lindex]) * wOpt / 4.;
     diff[index1] = fa[index1] - all[lindex];
@@ -57,14 +54,11 @@ __global__ void mykernel(double *rightSide, double wOpt, double *fa, double *dif
 }
 __global__ void my_red_black_kernel(double *rightSide, double wOpt, double *fa, double *diff, int n, double *all,
   int litN, int first) {
-  // tempAppr[j] = (B[j] - aMulX(A, firstAppr, j)) * Tau[i - 1] + firstAppr[j];
-
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   int lindex = index + N + 1 + 2 * (int) (index / (N - 2));
   int row = (int)(index / litN);
   int str = index % litN;
   if (index < n && ((row + str) % 2 == first)) {
-    // fa[index] = index;
     fa[index] = (-rightSide[index] + all[lindex - N] + all[lindex + N] + all[lindex - 1] + all[lindex + 1] -
       4 * (1 - 1. / wOpt) * all[lindex]) * wOpt / 4.;
     diff[index] = fa[index] - all[lindex];
@@ -94,7 +88,7 @@ int main() {
   vector<vector<double> > changeAppr(N, vector<double>(N, 0));
   firstApprSet(firstAppr);
   readVector(B);
-  double eps = 0.0001;
+  double eps = 1e-5;
   double spectr;
   double wOpt;
   double maxDiff = 0;
@@ -115,7 +109,7 @@ int main() {
   /*
   * расчет собственных чисел
   */
-  alglib::rmatrixevd(matrix, N, 0, wr, wi, vl, vr);
+  alglib::smatrixevd(matrix, (int)sqrt(N - 2), 0, true, wr, vl);
 
   /*
   *допустим что спектральынй радиус матрицы это максимальное собственное число (которые все норм должны быть) без модуля, так как все должны быть положительны
@@ -169,14 +163,14 @@ int main() {
     }
   }
   cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
-  outVector(fa, N * N - 4 * N + 4);
+  // outVector(fa, N * N - 4 * N + 4);
   // cin>>aber;
   cudaMemcpy(diff, d_diff, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
   do {
     //   outVector(diff, N * N - 4 * N + 4);
     // diff[0] = 0;
     // cudaMemcpy(d_diff, diff, size, cudaMemcpyHostToDevice);
-    cout << "The " << k << " iter" << endl;
+    // cout << "The " << k << " iter" << endl;
     // copyVectors(firstAppr, changeAppr);
     // cout<<"change: "<<endl;
     // outMatr(changeAppr);
@@ -228,17 +222,18 @@ int main() {
     // maxDiff = findMaxInVector(changeAppr);
     // system("pause");
     ++k;
-    cout << "Maxdiff is " << maxDiff << endl;
+    // cout << "Maxdiff is " << maxDiff << endl;
     // cin>>aber;
     if (maxDiff > 1000) {
       break;
     }
   } while (maxDiff > eps);
-  timeChecker = dsecnd() - timeChecker;
-  cout << "The iter is:" << endl;
-  cout << k << endl;
+  // cout << "The iter is:" << endl;
+  // cout << k << endl;
   firstApprSet(changeAppr);
   cudaMemcpy(fa, d_fa, size * (N * N - 4 * N + 4), cudaMemcpyDeviceToHost);
+  cudaDeviceSynchronize();
+  timeChecker = dsecnd() - timeChecker;
   for (int j = 1; j < N - 1; j++) {
     for (int k = 1; k < N - 1; k++) {
       firstAppr[j][k] = fa[(j - 1) * (N - 2) + (k - 1)];
@@ -252,33 +247,33 @@ int main() {
   //   /*
   //   * outing
   //   */
-  cout << "The Matr Is:" << endl;
-  outMatr(A);
-  cout << "The Vector Is:" << endl;
-  outMatr(B);
-  cout << "The first approximation Is:" << endl;
-  outMatr(changeAppr);
-  cout << "The epsilon Is:" << endl;
-  cout << eps << endl;
-  cout << "The Vector of ownValues:" << endl;
-  outReal1Array(wr);
-  cout << "The Spectr Is:" << endl;
-  cout << spectr << endl;
-  cout << "The wOpt Is:" << endl;
-  cout << wOpt << endl;
-  cout << "The result Is:" << endl;
-  outMatr(firstAppr);
+  // cout << "The Matr Is:" << endl;
+  // outMatr(A);
+  // cout << "The Vector Is:" << endl;
+  // outMatr(B);
+  // cout << "The first approximation Is:" << endl;
+  // outMatr(changeAppr);
+  // cout << "The epsilon Is:" << endl;
+  // cout << eps << endl;
+  // cout << "The Vector of ownValues:" << endl;
+  // outReal1Array(wr);
+  // cout << "The Spectr Is:" << endl;
+  // cout << spectr << endl;
+  // cout << "The wOpt Is:" << endl;
+  // cout << wOpt << endl;
+  // cout << "The result Is:" << endl;
+  // outMatr(firstAppr);
   cout << "The time is:" << endl;
   cout <<  dsecnd() - t0  << " s" << endl;
   cout << "The time of main is:" << endl;
   cout <<  timeChecker  << " s" << endl;
-  cout << "The 1 1 is:" << endl;
-  cout <<  firstAppr[1][1] << endl;
-  cout << "The 2 2 is:" << endl;
-  cout <<  firstAppr[2][2] << endl;
-  cout << "The N - 2 N - 2 is:" << endl;
-  cout <<  firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] << endl;
-  cout << "The N - 3 N - 3 is:" << endl;
-  cout <<  firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] << endl;
+  // cout << "The 1 1 is:" << endl;
+  // cout <<  firstAppr[1][1] << endl;
+  // cout << "The 2 2 is:" << endl;
+  // cout <<  firstAppr[2][2] << endl;
+  // cout << "The N - 2 N - 2 is:" << endl;
+  // cout <<  firstAppr[firstAppr.size() - 2][firstAppr.size() - 2] << endl;
+  // cout << "The N - 3 N - 3 is:" << endl;
+  // cout <<  firstAppr[firstAppr.size() - 3][firstAppr.size() - 3] << endl;
   return 0;
 }
